@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cubifai Solutions — Operations Dashboard & CRM</title>
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          },
+          colors: {
+            brand: '#4f46e5',
+            booked: '#059669',
+            cancelled: '#e11d48',
+            completed: '#0284c7',
+            action: '#d97706',
+          }
+        }
+      }
+    }
+  </script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    /* Custom scrollbars and styling for crisp white theme */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans antialiased min-h-screen flex flex-col md:flex-row overflow-x-hidden">
+
+  <!-- SIDEBAR NAVIGATION (CLEAN WHITE) -->
+  <aside class="w-full md:w-64 bg-white border-r border-slate-200 flex flex-col flex-shrink-0 z-20 shadow-sm">
+    <!-- Header / Branding -->
+    <div class="p-5 border-b border-slate-100 flex flex-col space-y-3">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-600 flex items-center justify-center text-white shadow-md shadow-indigo-200">
+          <i class="fa-solid fa-tooth text-xl"></i>
+        </div>
+        <div>
+          <h1 class="font-bold text-base tracking-tight text-slate-900">Cubifai <span class="text-indigo-600">Solutions</span></h1>
+          <p class="text-xs text-slate-500 font-medium">Smart Practice CRM</p>
+        </div>
+      </div>
+      <!-- AI Receptionist Status Badge -->
+      <div class="inline-flex items-center space-x-2 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-semibold w-fit">
+        <span class="relative flex h-2 w-2">
+          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+          <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+        </span>
+        <span>AI Receptionist Active</span>
+      </div>
+    </div>
+
+    <!-- Navigation Links -->
+    <nav class="flex-1 p-4 space-y-1.5 overflow-y-auto">
+      <button onclick="switchView('dashboard')" id="nav-dashboard" class="nav-btn w-full flex items-center space-x-3 px-4 py-3 rounded-xl font-medium text-sm transition-all duration-200 text-slate-600 hover:bg-slate-100 hover:text-slate-900">
+        <i class="fa-solid fa-house w-5 text-center text-indigo-600"></i>
+        <span>Dashboard</span>
+      </button>
+
+      <button onclick="switchView('appointments')" id="nav-appointments" class="nav-btn w-full flex items-center space-x-3 px-4 py-3 rounded-xl font-medium text-sm transition-all duration-200 text-slate-600 hover:bg-slate-100 hover:text-slate-900">
+        <i class="fa-solid fa-calendar-check w-5 text-center text-emerald-600"></i>
+        <span>Appointments</span>
+      </button>
+
+      <button onclick="switchView('patients')" id="nav-patients" class="nav-btn w-full flex items-center space-x-3 px-4 py-3 rounded-xl font-medium text-sm transition-all duration-200 text-slate-600 hover:bg-slate-100 hover:text-slate-900">
+        <i class="fa-solid fa-users w-5 text-center text-sky-600"></i>
+        <span>Patients / Leads</span>
+      </button>
+
+      <button onclick="switchView('calls')" id="nav-calls" class="nav-btn w-full flex items-center space-x-3 px-4 py-3 rounded-xl font-medium text-sm transition-all duration-200 text-slate-600 hover:bg-slate-100 hover:text-slate-900">
+        <i class="fa-solid fa-headset w-5 text-center text-amber-600"></i>
+        <span>AI Activity Log</span>
+      </button>
+
+      <button onclick="switchView('analytics')" id="nav-analytics" class="nav-btn w-full flex items-center space-x-3 px-4 py-3 rounded-xl font-medium text-sm transition-all duration-200 text-slate-600 hover:bg-slate-100 hover:text-slate-900">
+        <i class="fa-solid fa-chart-pie w-5 text-center text-violet-600"></i>
+        <span>Analytics</span>
+      </button>
+
+      <button onclick="openSettingsModal()" id="nav-settings" class="nav-btn w-full flex items-center space-x-3 px-4 py-3 rounded-xl font-medium text-sm transition-all duration-200 text-slate-600 hover:bg-slate-100 hover:text-slate-900">
+        <i class="fa-solid fa-database w-5 text-center text-indigo-600"></i>
+        <span>Database Settings</span>
+      </button>
+    </nav>
+
+    <!-- Footer System Info -->
+    <div class="p-4 border-t border-slate-100 text-xs text-slate-500 space-y-1.5 bg-slate-50/50">
+      <div class="flex items-center justify-between">
+        <span>VPS Gateway DB</span>
+        <span id="footer-conn-status" onclick="openSettingsModal()" class="cursor-pointer text-rose-600 font-semibold font-mono text-[11px] bg-rose-50 px-2 py-0.5 rounded border border-rose-200">Not connected</span>
+      </div>
+      <div class="flex items-center justify-between">
+        <span>Hostinger App</span>
+        <span class="text-indigo-600 font-semibold font-mono text-[11px]">v2.0.0</span>
+      </div>
+    </div>
+  </aside>
+
+
+  <!-- MAIN CONTENT AREA -->
+  <main class="flex-1 flex flex-col min-w-0 overflow-y-auto bg-slate-50/80">
+
+    <!-- TOP BAR HEADER -->
+    <header class="h-16 border-b border-slate-200 bg-white/90 backdrop-blur-md px-6 flex items-center justify-between sticky top-0 z-10 shadow-xs">
+      <div class="flex items-center space-x-3">
+        <h2 id="page-title" class="text-lg font-bold text-slate-900">Dashboard Overview</h2>
+        <span id="header-conn-status" class="hidden sm:inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-50 text-rose-600 border border-rose-200"><i class="fa-solid fa-circle-xmark mr-1"></i>Not connected</span>
+      </div>
+
+      <div class="flex items-center space-x-3">
+        <button onclick="fetchData()" class="p-2 rounded-lg bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 text-xs transition-colors shadow-xs" title="Refresh Data">
+          <i class="fa-solid fa-rotate text-sm"></i>
+        </button>
+
+        <div class="h-6 w-px bg-slate-200"></div>
+
+        <div class="flex items-center space-x-2 pl-1">
+          <div class="w-8 h-8 rounded-full bg-indigo-50 flex items-center justify-center text-xs font-bold text-indigo-600 border border-indigo-200">
+            HF
+          </div>
+          <span class="hidden md:inline-block text-xs font-semibold text-slate-700">Houstun Family Practice</span>
+        </div>
+
+        <button onclick="handleLogout()" class="px-3 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-semibold transition-all flex items-center space-x-1.5 shadow-xs" title="Log Out">
+          <i class="fa-solid fa-right-from-bracket"></i>
+          <span class="hidden sm:inline">Log Out</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- CONTENT VIEWS -->
+    <div class="p-6 space-y-6">
+
+      <!-- VIEW 1: DASHBOARD OVERVIEW -->
+      <section id="view-dashboard" class="space-y-6">
+
+        <!-- STAT CARDS SECTION HEADER WITH TIME RANGE FILTER DROPDOWN -->
+        <div class="flex items-center justify-between">
+          <div class="flex items-center space-x-2">
+            <h3 class="font-bold text-sm text-slate-900">Key Performance Indicators</h3>
+            <span class="text-xs text-slate-500 font-medium">(Live Metrics)</span>
+          </div>
+
+          <!-- Time Range Dropdown -->
+          <div class="flex items-center space-x-2 bg-white border border-slate-200 rounded-lg px-3 py-1.5 shadow-xs">
+            <i class="fa-solid fa-filter text-indigo-600 text-xs"></i>
+            <label for="time-range-select" class="text-xs font-semibold text-slate-600">Time Range:</label>
+            <select id="time-range-select" onchange="handlePeriodChange(this.value)" class="bg-transparent text-xs font-bold text-slate-800 focus:outline-none cursor-pointer">
+              <option value="all" selected>All Time</option>
+              <option value="today">Today</option>
+              <option value="last_week">Last Week</option>
+              <option value="last_month">Last Month</option>
+              <option value="last_3_months">Last 3 Months</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- 5 KPI STAT CARDS -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
+          <!-- Card 1: Total Received Calls -->
+          <div class="bg-white border border-slate-200/90 rounded-xl p-4 shadow-sm hover:shadow-md transition-all">
+            <div class="flex items-center justify-between">
+              <span class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Total Received Calls</span>
+              <div class="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center text-sm border border-indigo-100 shrink-0">
+                <i class="fa-solid fa-phone-volume"></i>
+              </div>
+            </div>
+            <div class="mt-2.5 flex items-baseline justify-between">
+              <span id="kpi-total-calls" class="text-2xl font-extrabold text-slate-900">0</span>
+              <span class="text-[10px] text-indigo-600 font-semibold flex items-center"><i class="fa-solid fa-circle text-[5px] mr-1"></i>AI Voice Logs</span>
+            </div>
+            <p class="text-[10px] text-slate-500 mt-1">Incoming AI receptionist calls</p>
+          </div>
+
+          <!-- Card 2: Booked Appointments -->
+          <div class="bg-white border border-slate-200/90 rounded-xl p-4 shadow-sm hover:shadow-md transition-all">
+            <div class="flex items-center justify-between">
+              <span class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Booked Appointments</span>
+              <div class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center text-sm border border-emerald-100 shrink-0">
+                <i class="fa-solid fa-calendar-check"></i>
+              </div>
+            </div>
+            <div class="mt-2.5 flex items-baseline justify-between">
+              <span id="kpi-booked" class="text-2xl font-extrabold text-slate-900">0</span>
+              <span class="text-[10px] text-emerald-600 font-semibold">Active Bookings</span>
+            </div>
+            <p class="text-[10px] text-slate-500 mt-1">Confirmed patient slots</p>
+          </div>
+
+          <!-- Card 3: Cancelled Appointments -->
+          <div class="bg-white border border-slate-200/90 rounded-xl p-4 shadow-sm hover:shadow-md transition-all">
+            <div class="flex items-center justify-between">
+              <span class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Cancelled Appointments</span>
+              <div class="w-8 h-8 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center text-sm border border-rose-100 shrink-0">
+                <i class="fa-solid fa-calendar-xmark"></i>
+              </div>
+            </div>
+            <div class="mt-2.5 flex items-baseline justify-between">
+              <span id="kpi-cancellations" class="text-2xl font-extrabold text-slate-900">0</span>
+              <span class="text-[10px] text-rose-600 font-semibold">Tracked</span>
+            </div>
+            <p class="text-[10px] text-slate-500 mt-1">Cancelled by patient/AI</p>
+          </div>
+
+          <!-- Card 4: Total Inquiries -->
+          <div class="bg-white border border-slate-200/90 rounded-xl p-4 shadow-sm hover:shadow-md transition-all">
+            <div class="flex items-center justify-between">
+              <span class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Total Inquiries</span>
+              <div class="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center text-sm border border-amber-100 shrink-0">
+                <i class="fa-solid fa-circle-question"></i>
+              </div>
+            </div>
+            <div class="mt-2.5 flex items-baseline justify-between">
+              <span id="kpi-inquiries" class="text-2xl font-extrabold text-slate-900">0</span>
+              <span class="text-[10px] text-amber-600 font-semibold">Inquiry</span>
+            </div>
+            <p class="text-[10px] text-slate-500 mt-1">General patient inquiries</p>
+          </div>
+
+          <!-- Card 5: Total Leads (FAQ) -->
+          <div class="bg-white border border-slate-200/90 rounded-xl p-4 shadow-sm hover:shadow-md transition-all">
+            <div class="flex items-center justify-between">
+              <span class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Total Leads (FAQ)</span>
+              <div class="w-8 h-8 rounded-lg bg-sky-50 text-sky-600 flex items-center justify-center text-sm border border-sky-100 shrink-0">
+                <i class="fa-solid fa-comments"></i>
+              </div>
+            </div>
+            <div class="mt-2.5 flex items-baseline justify-between">
+              <span id="kpi-faq" class="text-2xl font-extrabold text-slate-900">0</span>
+              <span class="text-[10px] text-sky-600 font-semibold">FAQ / Leads</span>
+            </div>
+            <p class="text-[10px] text-slate-500 mt-1">General questions & FAQ leads</p>
+          </div>
+        </div>
+
+        <!-- TWO COLUMN WIDGETS -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <!-- TODAY'S SCHEDULE WIDGET (2 Columns) -->
+          <div class="lg:col-span-2 bg-white border border-slate-200/90 rounded-xl p-5 space-y-4 shadow-sm">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div class="flex items-center space-x-2">
+                <i class="fa-solid fa-clock-rotate-left text-indigo-600"></i>
+                <h3 class="font-bold text-sm text-slate-900">Today's Schedule & Upcoming Timeline</h3>
+                <span id="timeline-today-count-badge" class="px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 hidden">0 Today</span>
+              </div>
+              <button onclick="switchView('appointments')" class="text-xs text-indigo-600 hover:text-indigo-700 font-semibold">View All <i class="fa-solid fa-chevron-right text-[10px] ml-1"></i></button>
+            </div>
+            <!-- Timeline Container -->
+            <div id="timeline-container" class="space-y-3 max-h-[380px] overflow-y-auto pr-1">
+              <div class="text-center py-8 text-slate-400 text-xs">Loading today's schedule...</div>
+            </div>
+          </div>
+
+          <!-- AI RECEPTIONIST FEED (1 Column) -->
+          <div class="bg-white border border-slate-200/90 rounded-xl p-5 space-y-4 shadow-sm">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div class="flex items-center space-x-2">
+                <i class="fa-solid fa-bolt text-amber-500"></i>
+                <h3 class="font-bold text-sm text-slate-900">AI Activity Live Feed</h3>
+              </div>
+              <span class="text-[10px] px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 font-mono font-semibold">Realtime</span>
+            </div>
+            <!-- Feed Container -->
+            <div id="ai-feed-container" class="space-y-3 max-h-[380px] overflow-y-auto pr-1">
+              <div class="text-center py-8 text-slate-400 text-xs">Loading live AI feed...</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW 2: APPOINTMENTS PAGE -->
+      <section id="view-appointments" class="space-y-4 hidden">
+        <!-- HEADER TOOLS: SEARCH, TIMELINE FILTERS & STATUS TABS -->
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white border border-slate-200/90 rounded-xl p-4 shadow-sm">
+          <!-- Search input -->
+          <div class="relative flex-1 max-w-md">
+            <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+            <input type="text" id="search-input" onkeyup="handleSearch()" placeholder="Search patient name, phone, or email..." class="w-full bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-4 py-2 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-indigo-600 focus:bg-white transition-all">
+          </div>
+
+          <div class="flex flex-wrap items-center gap-3">
+            <!-- Timeline Filter (All, Today, Last Week, Last Month) -->
+            <div class="flex items-center space-x-1 bg-slate-100/80 p-1 rounded-lg border border-slate-200">
+              <button onclick="filterAppointmentPeriod('all')" id="app-period-all" class="px-3 py-1 rounded-md text-xs font-semibold transition-all bg-indigo-600 text-white shadow-xs">All</button>
+              <button onclick="filterAppointmentPeriod('today')" id="app-period-today" class="px-3 py-1 rounded-md text-xs font-semibold text-slate-600 hover:text-slate-900 transition-all">Today</button>
+              <button onclick="filterAppointmentPeriod('last_week')" id="app-period-last_week" class="px-3 py-1 rounded-md text-xs font-semibold text-slate-600 hover:text-slate-900 transition-all">Last Week</button>
+              <button onclick="filterAppointmentPeriod('last_month')" id="app-period-last_month" class="px-3 py-1 rounded-md text-xs font-semibold text-slate-600 hover:text-slate-900 transition-all">Last Month</button>
+            </div>
+
+            <!-- Segmented Status Filter Tabs -->
+            <div class="flex items-center space-x-1 bg-slate-100/80 p-1 rounded-lg border border-slate-200">
+              <button onclick="filterTab('all')" id="tab-all" class="tab-btn px-3 py-1 rounded-md text-xs font-semibold transition-all bg-indigo-600 text-white shadow-xs">All Statuses</button>
+              <button onclick="filterTab('booked')" id="tab-booked" class="tab-btn px-3 py-1 rounded-md text-xs font-semibold text-slate-600 hover:text-slate-900 transition-all">Booked</button>
+              <button onclick="filterTab('cancelled')" id="tab-cancelled" class="tab-btn px-3 py-1 rounded-md text-xs font-semibold text-slate-600 hover:text-slate-900 transition-all">Cancelled</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- APPOINTMENTS DATA TABLE -->
+        <div class="bg-white border border-slate-200/90 rounded-xl overflow-hidden shadow-sm">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs text-slate-700">
+              <thead class="bg-slate-50 text-slate-600 font-bold border-b border-slate-200 uppercase tracking-wider text-[10px]">
+                <tr>
+                  <th class="py-3.5 px-4">ID</th>
+                  <th class="py-3.5 px-4">Patient Name</th>
+                  <th class="py-3.5 px-4">Dental Service</th>
+                  <th class="py-3.5 px-4">Date & Time</th>
+                  <th class="py-3.5 px-4">AI Action</th>
+                  <th class="py-3.5 px-4">Contact Phone</th>
+                  <th class="py-3.5 px-4">Status</th>
+                </tr>
+              </thead>
+              <tbody id="appointments-tbody" class="divide-y divide-slate-100">
+                <tr>
+                  <td colspan="7" class="text-center py-8 text-slate-400">Loading appointments...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW 3: PATIENTS & LEADS -->
+      <section id="view-patients" class="space-y-6 hidden">
+        
+        <!-- SECTION HEADER -->
+        <div class="flex items-center justify-between">
+          <div>
+            <h3 class="font-bold text-base text-slate-900">Patients & Lead Directory</h3>
+            <p class="text-xs text-slate-500">Comprehensive patient records and FAQ lead tracking</p>
+          </div>
+        </div>
+
+        <!-- 2 SUMMARY KPI CARDS: PATIENTS & LEADS -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <!-- Card 1: Patients (Booked + Cancelled) -->
+          <div class="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all flex items-center justify-between">
+            <div class="space-y-1">
+              <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Patients</span>
+              <div class="flex items-baseline space-x-2">
+                <span id="patient-kpi-total-patients" class="text-3xl font-extrabold text-slate-900">0</span>
+                <span class="text-xs text-emerald-600 font-semibold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">Booked & Cancelled</span>
+              </div>
+              <p class="text-xs text-slate-500">Total patient appointment records</p>
+            </div>
+            <div class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl border border-emerald-100 shadow-xs">
+              <i class="fa-solid fa-user-check"></i>
+            </div>
+          </div>
+
+          <!-- Card 2: Leads (FAQ) -->
+          <div class="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all flex items-center justify-between">
+            <div class="space-y-1">
+              <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">FAQ Leads</span>
+              <div class="flex items-baseline space-x-2">
+                <span id="patient-kpi-faq-leads" class="text-3xl font-extrabold text-slate-900">0</span>
+                <span class="text-xs text-violet-600 font-semibold bg-violet-50 px-2 py-0.5 rounded-full border border-violet-200">Status = FAQ</span>
+              </div>
+              <p class="text-xs text-slate-500">Inquiries where status is marked as FAQ</p>
+            </div>
+            <div class="w-12 h-12 rounded-2xl bg-violet-50 text-violet-600 flex items-center justify-center text-xl border border-violet-100 shadow-xs">
+              <i class="fa-solid fa-circle-question"></i>
+            </div>
+          </div>
+        </div>
+
+        <!-- PATIENT & LEADS TABLE WITH FILTER BUTTONS -->
+        <div class="bg-white border border-slate-200/90 rounded-2xl overflow-hidden shadow-sm space-y-4 p-5">
+          
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+            <div class="flex items-center space-x-2">
+              <h4 class="font-bold text-sm text-slate-900">Directory Records</h4>
+              <span id="patient-table-count-badge" class="px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 text-xs font-semibold">0 records</span>
+            </div>
+
+            <!-- FILTER TABS -->
+            <div class="flex items-center space-x-1.5 bg-slate-100/80 p-1 rounded-xl">
+              <button onclick="filterLeadsTable('all')" id="lead-filter-all" class="lead-filter-btn px-3 py-1 rounded-lg text-xs font-semibold transition-all text-slate-600 hover:text-slate-900">
+                All
+              </button>
+              <button onclick="filterLeadsTable('patients')" id="lead-filter-patients" class="lead-filter-btn px-3.5 py-1 rounded-lg text-xs font-semibold transition-all bg-white text-slate-900 shadow-xs">
+                Patients (Booked & Cancelled)
+              </button>
+              <button onclick="filterLeadsTable('leads')" id="lead-filter-leads" class="lead-filter-btn px-3.5 py-1 rounded-lg text-xs font-semibold transition-all text-slate-600 hover:text-slate-900">
+                Leads (FAQ)
+              </button>
+            </div>
+          </div>
+
+          <!-- CLEAN PROFESSIONAL TABLE -->
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs text-slate-700">
+              <thead class="bg-slate-50 text-slate-600 font-bold border-b border-slate-200 uppercase tracking-wider text-[10px]">
+                <tr>
+                  <th class="py-3.5 px-4">Patient / Client Name</th>
+                  <th class="py-3.5 px-4">Contact Info</th>
+                  <th class="py-3.5 px-4">Service Requested</th>
+                  <th class="py-3.5 px-4">Reason / Notes</th>
+                  <th class="py-3.5 px-4">Status</th>
+                  <th class="py-3.5 px-4 text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody id="patients-tbody" class="divide-y divide-slate-100">
+                <tr>
+                  <td colspan="6" class="text-center py-8 text-slate-400">Loading directory data...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+        </div>
+
+      </section>
+
+      <!-- VIEW 4: AI RECEPTIONIST ACTIVITY LOG -->
+      <section id="view-calls" class="space-y-6 hidden">
+        <!-- SECTION HEADER -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h2 class="text-lg font-bold text-slate-900">AI Receptionist Activity Log</h2>
+            <p class="text-xs text-slate-500">Live stream of incoming AI voice call sessions & call transcripts.</p>
+          </div>
+
+          <div class="flex items-center space-x-3">
+            <!-- Timeline Filter (All, Today, Last Week, Last Month) -->
+            <div class="flex items-center space-x-1 bg-slate-100/80 p-1 rounded-lg border border-slate-200">
+              <button onclick="filterCallsPeriod('all')" id="calls-period-all" class="px-3 py-1 rounded-md text-xs font-semibold transition-all bg-indigo-600 text-white shadow-xs">All</button>
+              <button onclick="filterCallsPeriod('today')" id="calls-period-today" class="px-3 py-1 rounded-md text-xs font-semibold text-slate-600 hover:text-slate-900 transition-all">Today</button>
+              <button onclick="filterCallsPeriod('last_week')" id="calls-period-last_week" class="px-3 py-1 rounded-md text-xs font-semibold text-slate-600 hover:text-slate-900 transition-all">Last Week</button>
+              <button onclick="filterCallsPeriod('last_month')" id="calls-period-last_month" class="px-3 py-1 rounded-md text-xs font-semibold text-slate-600 hover:text-slate-900 transition-all">Last Month</button>
+            </div>
+
+            <button onclick="fetchData()" class="p-2 rounded-lg bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 text-xs transition-colors shadow-xs" title="Refresh Data">
+              <i class="fa-solid fa-rotate text-sm"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="bg-white border border-slate-200/90 rounded-xl overflow-hidden shadow-sm">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs text-slate-700">
+              <thead class="bg-slate-50 text-slate-600 font-bold border-b border-slate-200 uppercase tracking-wider text-[10px]">
+                <tr>
+                  <th class="py-3.5 px-4">Event ID</th>
+                  <th class="py-3.5 px-4">Caller Name</th>
+                  <th class="py-3.5 px-4">Intent</th>
+                  <th class="py-3.5 px-4">Details / Service</th>
+                  <th class="py-3.5 px-4">Date & Time</th>
+                  <th class="py-3.5 px-4 text-right">Transcript</th>
+                </tr>
+              </thead>
+              <tbody id="calls-tbody" class="divide-y divide-slate-100">
+                <tr>
+                  <td colspan="6" class="text-center py-8 text-slate-400">Loading call activity log...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW 5: ANALYTICS & INSIGHTS -->
+      <section id="view-analytics" class="space-y-6 hidden">
+        <!-- SECTION HEADER -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white border border-slate-200/90 rounded-2xl p-5 shadow-xs">
+          <div>
+            <div class="flex items-center space-x-2">
+              <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-indigo-50 text-indigo-700 border border-indigo-200/60">Executive Insights</span>
+              <span class="text-xs text-slate-400 font-mono">Live Sync</span>
+            </div>
+            <h2 class="text-xl font-extrabold text-slate-900 mt-1">Analytics & Performance Insights</h2>
+            <p class="text-xs text-slate-500 mt-0.5">Visual breakdown of AI receptionist conversions, service demand, and appointment volume over time.</p>
+          </div>
+          <div class="flex items-center space-x-3">
+            <select onchange="handlePeriodChange(this.value)" id="analytics-period-select" class="bg-slate-50 border border-slate-200 text-slate-700 text-xs font-semibold rounded-xl px-3 py-2 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all shadow-2xs">
+              <option value="all">Time Period: All Time</option>
+              <option value="last_month">Last 30 Days</option>
+              <option value="last_week">Last 7 Days</option>
+              <option value="today">Today Only</option>
+            </select>
+            <button onclick="fetchData()" class="p-2.5 rounded-xl bg-white hover:bg-slate-50 text-slate-600 border border-slate-200 text-xs transition-colors shadow-2xs" title="Refresh Analytics Data">
+              <i class="fa-solid fa-rotate text-sm"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- TOP METRICS GRID (4 CARDS) -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <!-- CARD 1: CONVERSION RATE -->
+          <div class="bg-white border border-slate-200/90 rounded-2xl p-4 shadow-xs space-y-2 hover:shadow-md transition-all">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Booking Conversion</span>
+              <div class="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-100">
+                <i class="fa-solid fa-chart-line text-sm"></i>
+              </div>
+            </div>
+            <div class="flex items-baseline space-x-2">
+              <span id="analytics-conversion-rate" class="text-2xl font-black text-slate-900">0.0%</span>
+              <span id="analytics-conversion-badge" class="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">High Demand</span>
+            </div>
+            <p id="analytics-conversion-sub" class="text-[11px] text-slate-500">0 of 0 calls converted to bookings</p>
+            <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+              <div id="analytics-conversion-bar" class="bg-emerald-500 h-full rounded-full transition-all duration-500" style="width: 0%"></div>
+            </div>
+          </div>
+
+          <!-- CARD 2: CANCELLATION RATE -->
+          <div class="bg-white border border-slate-200/90 rounded-2xl p-4 shadow-xs space-y-2 hover:shadow-md transition-all">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Cancellation Rate</span>
+              <div class="w-8 h-8 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center border border-rose-100">
+                <i class="fa-solid fa-user-slash text-sm"></i>
+              </div>
+            </div>
+            <div class="flex items-baseline space-x-2">
+              <span id="analytics-cancel-rate" class="text-2xl font-black text-slate-900">0.0%</span>
+              <span class="text-[10px] font-bold text-rose-700 bg-rose-50 px-2 py-0.5 rounded-full border border-rose-200">AI Handled</span>
+            </div>
+            <p id="analytics-cancel-sub" class="text-[11px] text-slate-500">0 calls cancelled by patient</p>
+            <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+              <div id="analytics-cancel-bar" class="bg-rose-500 h-full rounded-full transition-all duration-500" style="width: 0%"></div>
+            </div>
+          </div>
+
+          <!-- CARD 3: INQUIRIES & FAQ LEADS -->
+          <div class="bg-white border border-slate-200/90 rounded-2xl p-4 shadow-xs space-y-2 hover:shadow-md transition-all">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Inquiries & FAQ</span>
+              <div class="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center border border-indigo-100">
+                <i class="fa-solid fa-comments text-sm"></i>
+              </div>
+            </div>
+            <div class="flex items-baseline space-x-2">
+              <span id="analytics-inquiries-count" class="text-2xl font-black text-slate-900">0</span>
+              <span class="text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-200">Information</span>
+            </div>
+            <p id="analytics-inquiries-sub" class="text-[11px] text-slate-500">0 general inquiries & FAQ leads</p>
+            <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+              <div id="analytics-inquiries-bar" class="bg-indigo-500 h-full rounded-full transition-all duration-500" style="width: 0%"></div>
+            </div>
+          </div>
+
+          <!-- CARD 4: TOP DENTAL SERVICE -->
+          <div class="bg-white border border-slate-200/90 rounded-2xl p-4 shadow-xs space-y-2 hover:shadow-md transition-all">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Top Requested Service</span>
+              <div class="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center border border-amber-100">
+                <i class="fa-solid fa-tooth text-sm"></i>
+              </div>
+            </div>
+            <div class="flex items-baseline space-x-2">
+              <span id="analytics-top-service" class="text-lg font-black text-slate-900 truncate">None</span>
+            </div>
+            <p id="analytics-top-service-sub" class="text-[11px] text-slate-500">Most popular patient procedure</p>
+            <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+              <div id="analytics-top-service-bar" class="bg-amber-500 h-full rounded-full transition-all duration-500" style="width: 0%"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- CHARTS GRID ROW 1 (2 CHARTS) -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <!-- CHART 1: SERVICE DISTRIBUTION -->
+          <div class="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-xs space-y-4 hover:shadow-md transition-all">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div>
+                <h3 class="font-extrabold text-sm text-slate-900 flex items-center space-x-2">
+                  <i class="fa-solid fa-chart-pie text-indigo-600"></i>
+                  <span>Dental Service Share</span>
+                </h3>
+                <p class="text-[11px] text-slate-500 mt-0.5">Distribution of requested services across total volume</p>
+              </div>
+              <span class="px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-indigo-50 text-indigo-700 border border-indigo-100">Doughnut</span>
+            </div>
+            <div class="h-64 relative flex items-center justify-center">
+              <canvas id="chart-services"></canvas>
+            </div>
+          </div>
+
+          <!-- CHART 2: STATUS BREAKDOWN -->
+          <div class="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-xs space-y-4 hover:shadow-md transition-all">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div>
+                <h3 class="font-extrabold text-sm text-slate-900 flex items-center space-x-2">
+                  <i class="fa-solid fa-chart-column text-emerald-600"></i>
+                  <span>Appointment Status Metrics</span>
+                </h3>
+                <p class="text-[11px] text-slate-500 mt-0.5">Total counts categorized by final appointment status</p>
+              </div>
+              <span class="px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-emerald-50 text-emerald-700 border border-emerald-100">Bar Chart</span>
+            </div>
+            <div class="h-64 relative">
+              <canvas id="chart-status"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- CHARTS GRID ROW 2 (TIMELINE TREND + ACTION BREAKDOWN) -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <!-- CHART 3: CALL & APPOINTMENT TREND (2 COLS) -->
+          <div class="lg:col-span-2 bg-white border border-slate-200/90 rounded-2xl p-5 shadow-xs space-y-4 hover:shadow-md transition-all">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div>
+                <h3 class="font-extrabold text-sm text-slate-900 flex items-center space-x-2">
+                  <i class="fa-solid fa-chart-line text-indigo-600"></i>
+                  <span>Activity & Call Volume Trend</span>
+                </h3>
+                <p class="text-[11px] text-slate-500 mt-0.5">Chronological timeline of incoming calls and patient bookings</p>
+              </div>
+              <span class="px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-indigo-50 text-indigo-700 border border-indigo-100">Area Line</span>
+            </div>
+            <div class="h-64 relative">
+              <canvas id="chart-timeline"></canvas>
+            </div>
+          </div>
+
+          <!-- CHART 4: AI RECEPTIONIST ACTIONS (1 COL) -->
+          <div class="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-xs space-y-4 hover:shadow-md transition-all flex flex-col justify-between">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div>
+                <h3 class="font-extrabold text-sm text-slate-900 flex items-center space-x-2">
+                  <i class="fa-solid fa-robot text-purple-600"></i>
+                  <span>AI Agent Actions</span>
+                </h3>
+                <p class="text-[11px] text-slate-500 mt-0.5">Actions triggered during calls</p>
+              </div>
+              <span class="px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-purple-50 text-purple-700 border border-purple-100">Polar Area</span>
+            </div>
+            <div class="h-64 relative flex items-center justify-center">
+              <canvas id="chart-actions"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- DETAILED SERVICE BREAKDOWN LIST -->
+        <div class="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-xs space-y-4">
+          <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div>
+              <h3 class="font-extrabold text-sm text-slate-900 flex items-center space-x-2">
+                <i class="fa-solid fa-list-check text-slate-700"></i>
+                <span>Service Popularity & Volume Breakdown</span>
+              </h3>
+              <p class="text-[11px] text-slate-500 mt-0.5">Detailed procedure demand ranking and patient percentage metrics</p>
+            </div>
+            <span id="analytics-service-count-badge" class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 font-mono">0 Services</span>
+          </div>
+
+          <div id="analytics-services-list" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- Dynamic Service Rows inserted here -->
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- MODAL: TRANSCRIPT / CALL DETAILS -->
+  <div id="modal-transcript" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white border border-slate-200 rounded-2xl w-full max-w-md overflow-hidden shadow-xl space-y-4 p-6">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <h3 class="font-bold text-sm text-slate-900 flex items-center space-x-2">
+          <i class="fa-solid fa-headset text-amber-600"></i>
+          <span>AI Voice Session Transcript</span>
+        </h3>
+        <button onclick="closeModal('modal-transcript')" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <div class="p-3 rounded-lg bg-slate-50 border border-slate-200 flex justify-between items-center">
+          <div>
+            <div id="modal-transcript-patient" class="font-bold text-slate-900">Patient Name</div>
+            <div id="modal-transcript-event" class="text-[10px] text-slate-500 font-mono">Event ID</div>
+          </div>
+          <span id="modal-transcript-action" class="px-2.5 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200 font-mono font-semibold text-[10px]">book_appointment</span>
+        </div>
+
+        <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2.5 max-h-60 overflow-y-auto">
+          <div class="flex space-x-2">
+            <span class="text-amber-700 font-bold">AI:</span>
+            <p class="text-slate-700">"Thank you for calling Smile Dental AI. How can I help you today?"</p>
+          </div>
+          <div class="flex space-x-2">
+            <span class="text-indigo-600 font-bold">Patient:</span>
+            <p id="modal-transcript-reason" class="text-slate-700">"I'd like to schedule an appointment..."</p>
+          </div>
+          <div class="flex space-x-2">
+            <span class="text-amber-700 font-bold">AI:</span>
+            <p class="text-slate-700">"I have confirmed your booking in our PostgreSQL schedule and synced event ID code."</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex justify-end pt-2">
+        <button onclick="closeModal('modal-transcript')" class="px-4 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: DATABASE CONNECTION SETTINGS -->
+  <div id="modal-settings" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white border border-slate-200 rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl space-y-4 p-6">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <h3 class="font-bold text-base text-slate-900 flex items-center space-x-2">
+          <i class="fa-solid fa-database text-indigo-600"></i>
+          <span>VPS Client Database Connection</span>
+        </h3>
+        <button onclick="closeModal('modal-settings')" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="space-y-4 text-xs">
+        <p class="text-slate-600">Connect your Hostinger identity to your isolated organization database on the Hetzner VPS to access real-time bookings, AI call logs, and practice analytics.</p>
+
+        <!-- Current Connection Status Card -->
+        <div id="settings-status-card" class="p-3.5 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
+          <div class="flex items-center space-x-3">
+            <div id="settings-status-icon" class="w-9 h-9 rounded-lg bg-rose-100 text-rose-600 flex items-center justify-center text-sm font-bold">
+              <i class="fa-solid fa-plug-circle-xmark"></i>
+            </div>
+            <div>
+              <div id="settings-status-title" class="font-bold text-slate-900">Database Disconnected</div>
+              <div id="settings-status-sub" class="text-[11px] text-slate-500">No active VPS client schema linked</div>
+            </div>
+          </div>
+          <button id="btn-unlink-db" onclick="handleUnlinkDatabase()" class="hidden px-3 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-semibold transition-all">
+            Unlink DB
+          </button>
+        </div>
+
+        <!-- Connection Form -->
+        <form id="form-link-db" onsubmit="handleLinkDatabase(event)" class="space-y-3.5 pt-2">
+          <div>
+            <label for="link-client-slug" class="block font-semibold text-slate-700 mb-1">Organization Slug</label>
+            <input type="text" id="link-client-slug" required placeholder="e.g. houston" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-mono text-slate-800 focus:outline-none focus:border-indigo-600 focus:bg-white transition-all">
+            <span class="text-[10px] text-slate-400">The organization key assigned to your business (e.g. 'houston').</span>
+          </div>
+
+          <div>
+            <label for="link-username" class="block font-semibold text-slate-700 mb-1">Client Staff Username</label>
+            <input type="text" id="link-username" required placeholder="e.g. houstunUser" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-indigo-600 focus:bg-white transition-all">
+          </div>
+
+          <div>
+            <label for="link-password" class="block font-semibold text-slate-700 mb-1">Client Staff Password</label>
+            <input type="password" id="link-password" required placeholder="••••••••" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-indigo-600 focus:bg-white transition-all">
+          </div>
+
+          <div id="link-error-msg" class="hidden p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 font-medium text-xs"></div>
+
+          <div class="flex justify-end space-x-2 pt-2">
+            <button type="button" onclick="closeModal('modal-settings')" class="px-4 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold">Cancel</button>
+            <button type="submit" id="btn-submit-link" class="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-md shadow-indigo-200 transition-all flex items-center space-x-1.5">
+              <i class="fa-solid fa-link"></i>
+              <span>Connect Database</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCRIPT INTEGRATION -->
+  <script src="script.js?v=4.0"></script>
+</body>
+</html>
+
