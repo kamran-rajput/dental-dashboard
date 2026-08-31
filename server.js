@@ -417,8 +417,36 @@ app.post('/api/admin/revoke', requireAdminAuth, async (req, res) => {
 });
 
 // -------------------------------------------------------------
+// SECURITY & DIRECTORY TRAVERSAL PROTECTION MIDDLEWARE
+// -------------------------------------------------------------
+
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+
+  // Prevent directory traversal attacks
+  const rawPath = req.path || '';
+  try {
+    const decodedPath = decodeURIComponent(rawPath);
+    const normalizedPath = path.normalize(decodedPath);
+    if (normalizedPath.includes('..') || rawPath.includes('..') || rawPath.includes('%2e%2e')) {
+      return res.status(403).send('Forbidden: Invalid path traversal attempt');
+    }
+  } catch (e) {
+    return res.status(400).send('Bad Request: Invalid URL encoding');
+  }
+  next();
+});
+
+// -------------------------------------------------------------
 // HTML PAGE ROUTES
 // -------------------------------------------------------------
+
+// Secret Admin Access URL Path (e.g. /kami)
+app.get(['/kami', '/kami/'], (req, res) => {
+  res.sendFile(path.join(__dirname, 'static', 'login.html'));
+});
 
 app.get('/login', (req, res) => {
   res.sendFile(path.join(__dirname, 'static', 'login.html'));

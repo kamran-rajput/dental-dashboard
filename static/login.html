@@ -45,24 +45,12 @@
         <i class="fa-solid fa-tooth text-2xl"></i>
       </div>
       <h1 class="text-2xl font-extrabold text-white tracking-tight">Cubifai <span class="text-indigo-400">Solutions</span></h1>
-      <p class="text-xs text-slate-400 font-medium">Smart Practice CRM & Multi-Tenant Gateway Portal</p>
+      <p id="portal-subtitle" class="text-xs text-slate-400 font-medium">Smart Practice CRM Client Sign In</p>
     </div>
 
     <!-- CARD CONTAINER -->
     <div class="glass-card border border-slate-700/50 rounded-2xl p-6 shadow-2xl space-y-5 text-slate-800">
       
-      <!-- MODE SWITCHER TABS -->
-      <div class="grid grid-cols-2 gap-1 bg-slate-100 p-1.5 rounded-xl border border-slate-200">
-        <button id="tab-btn-user" onclick="switchLoginTab('user')" class="py-2 rounded-lg text-xs font-bold transition-all bg-white text-indigo-600 shadow-xs flex items-center justify-center space-x-1.5">
-          <i class="fa-solid fa-user text-xs"></i>
-          <span>Client User Portal</span>
-        </button>
-        <button id="tab-btn-admin" onclick="switchLoginTab('admin')" class="py-2 rounded-lg text-xs font-bold transition-all text-slate-600 hover:text-slate-900 flex items-center justify-center space-x-1.5">
-          <i class="fa-solid fa-user-shield text-xs"></i>
-          <span>System Admin Portal</span>
-        </button>
-      </div>
-
       <!-- FORM 1: CLIENT USER PORTAL LOGIN -->
       <form id="form-user-login" onsubmit="handleUserLogin(event)" class="space-y-4">
         <div>
@@ -130,12 +118,25 @@
   </div>
 
   <script>
-    let activeTab = 'user';
-
     document.addEventListener('DOMContentLoaded', () => {
       const urlParams = new URLSearchParams(window.location.search);
-      if (urlParams.get('mode') === 'admin') {
-        switchLoginTab('admin');
+      const path = window.location.pathname.toLowerCase();
+      const isAdminMode = path.includes('/kami') || urlParams.get('mode') === 'admin' || urlParams.get('mode') === 'kami';
+
+      const userForm = document.getElementById('form-user-login');
+      const adminForm = document.getElementById('form-admin-login');
+      const subtitleEl = document.getElementById('portal-subtitle');
+
+      if (isAdminMode) {
+        userForm.classList.add('hidden');
+        adminForm.classList.remove('hidden');
+        if (subtitleEl) subtitleEl.textContent = 'System Admin & Tenant Provisioning Portal';
+        document.title = 'Cubifai Solutions — System Admin Sign In';
+      } else {
+        adminForm.classList.add('hidden');
+        userForm.classList.remove('hidden');
+        if (subtitleEl) subtitleEl.textContent = 'Smart Practice CRM Client Sign In';
+        document.title = 'Cubifai Solutions — Client Sign In';
       }
     });
 
