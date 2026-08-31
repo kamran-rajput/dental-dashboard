@@ -104,8 +104,8 @@ function renderLinksTable(links) {
 
 async function handleCreateClient(e) {
   e.preventDefault();
-  const slug = document.getElementById('new-client-slug').value.trim();
-  const name = document.getElementById('new-client-name').value.trim();
+  const client_slug = document.getElementById('new-client-slug').value.trim();
+  const client_name = document.getElementById('new-client-name').value.trim();
   const booking_schema = document.getElementById('new-booking-schema').value.trim();
   const login_schema = document.getElementById('new-login-schema').value.trim();
   const msgEl = document.getElementById('add-client-msg');
@@ -118,7 +118,7 @@ async function handleCreateClient(e) {
     const res = await fetch('/api/admin/clients', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ slug, name, booking_schema, login_schema })
+      body: JSON.stringify({ client_slug, client_name, booking_schema, login_schema })
     });
     const data = await res.json();
 
