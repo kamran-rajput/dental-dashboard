@@ -58,17 +58,21 @@ function renderClientsTable(clients) {
     return;
   }
 
-  tbody.innerHTML = clients.map(c => `
-    <tr class="hover:bg-slate-800/40 transition-colors">
-      <td class="py-3.5 px-4 font-mono font-bold text-indigo-400">${escapeHtml(c.slug)}</td>
-      <td class="py-3.5 px-4 font-semibold text-white">${escapeHtml(c.name)}</td>
-      <td class="py-3.5 px-4 font-mono text-slate-400">${escapeHtml(c.booking_schema)}</td>
-      <td class="py-3.5 px-4 font-mono text-slate-400">${escapeHtml(c.login_schema)}</td>
-      <td class="py-3.5 px-4">
-        <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950 text-emerald-400 border border-emerald-800/60">Active</span>
-      </td>
-    </tr>
-  `).join('');
+  tbody.innerHTML = clients.map(c => {
+    const slug = c.client_slug || c.slug;
+    const name = c.client_name || c.name;
+    return `
+      <tr class="hover:bg-slate-800/40 transition-colors">
+        <td class="py-3.5 px-4 font-mono font-bold text-indigo-400">${escapeHtml(slug)}</td>
+        <td class="py-3.5 px-4 font-semibold text-white">${escapeHtml(name)}</td>
+        <td class="py-3.5 px-4 font-mono text-slate-400">${escapeHtml(c.booking_schema)}</td>
+        <td class="py-3.5 px-4 font-mono text-slate-400">${escapeHtml(c.login_schema)}</td>
+        <td class="py-3.5 px-4">
+          <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950 text-emerald-400 border border-emerald-800/60">Active</span>
+        </td>
+      </tr>
+    `;
+  }).join('');
 }
 
 function renderLinksTable(links) {
@@ -86,11 +90,12 @@ function renderLinksTable(links) {
     const dt = new Date(l.created_at || Date.now());
     const dateStr = dt.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
 
+    const username = l.client_username || l.username || '';
     return `
       <tr class="hover:bg-slate-800/40 transition-colors">
         <td class="py-3.5 px-4 font-mono text-slate-300 font-semibold">${escapeHtml(l.hostinger_user_id)}</td>
         <td class="py-3.5 px-4 font-mono text-indigo-400 font-bold">${escapeHtml(l.client_slug)}</td>
-        <td class="py-3.5 px-4 text-slate-300 font-medium">${escapeHtml(l.client_username)}</td>
+        <td class="py-3.5 px-4 text-slate-300 font-medium">${escapeHtml(username)}</td>
         <td class="py-3.5 px-4 text-slate-500 font-mono text-[11px]">${dateStr}</td>
         <td class="py-3.5 px-4 text-right">
           <button onclick="handleRevokeTokens('${escapeHtml(l.hostinger_user_id)}', '${escapeHtml(l.client_slug)}')" class="px-3 py-1 rounded-lg bg-rose-950 hover:bg-rose-900 text-rose-300 border border-rose-800/60 text-[11px] font-bold transition-all shadow-xs">
