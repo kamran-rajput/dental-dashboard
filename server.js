@@ -4,6 +4,7 @@ const cookieParser = require('cookie-parser');
 const jwt = require('jsonwebtoken');
 const cors = require('cors');
 require('dotenv').config();
+const dbManager = require('./db/db_manager');
 
 const app = express();
 
@@ -63,7 +64,69 @@ function getAdminSession(req) {
   }
 }
 
-function saveUserSession(res, sessionData) {
+// Rate Limiter for Authentication Endpoints (Protects against brute force)
+const rateLimitMap = new Map();
+const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
+const MAX_AUTH_ATTEMPTS = 5;
+
+function authRateLimiter(req, res, next) {
+  const clientIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket.remoteAddress || 'unknown';
+  const key = `${req.path}:${clientIp}`;
+  const now = Date.now();
+  const entry = rateLimitMap.get(key) || { attempts: 0, resetAt: now + RATE_LIMIT_WINDOW_MS };
+
+  if (now > entry.resetAt) {
+    entry.attempts = 0;
+    entry.resetAt = now + RATE_LIMIT_WINDOW_MS;
+  }
+
+  if (entry.attempts >= MAX_AUTH_ATTEMPTS) {
+    const retryAfterMinutes = Math.max(1, Math.ceil((entry.resetAt - now) / 60000));
+    return res.status(429).json({
+      detail: `Too many failed authentication attempts. Please try again in ${retryAfterMinutes} minute(s).`
+    });
+  }
+
+  // Track failed attempts on response finish
+  res.on('finish', () => {
+    if (res.statusCode === 401 || res.statusCode === 403) {
+      entry.attempts += 1;
+      rateLimitMap.set(key, entry);
+    } else if (res.statusCode >= 200 && res.statusCode < 300) {
+      rateLimitMap.delete(key);
+    }
+  });
+
+  next();
+}
+
+// Clean up expired rate limit entries every 30 minutes
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, entry] of rateLimitMap.entries()) {
+    if (now > entry.resetAt) {
+      rateLimitMap.delete(key);
+    }
+  }
+}, 30 * 60 * 1000).unref();
+
+// Input Validation Helpers
+const SLUG_REGEX = /^[a-z0-9_-]{2,32}$/;
+const USERNAME_REGEX = /^[a-zA-Z0-9_.@-]{2,64}$/;
+
+function isValidSlug(slug) {
+  return typeof slug === 'string' && SLUG_REGEX.test(slug.trim().toLowerCase());
+}
+
+function isValidUsername(username) {
+  return typeof username === 'string' && USERNAME_REGEX.test(username.trim());
+}
+
+function isSecureRequest(req) {
+  return req.secure || req.headers['x-forwarded-proto'] === 'https' || process.env.NODE_ENV === 'production';
+}
+
+function saveUserSession(req, res, sessionData) {
   const cleanPayload = { ...sessionData };
   delete cleanPayload.iat;
   delete cleanPayload.exp;
@@ -73,12 +136,13 @@ function saveUserSession(res, sessionData) {
   res.cookie('user_session', token, {
     httpOnly: true,
     sameSite: 'lax',
-    secure: false, // set true in strict HTTPS
+    secure: isSecureRequest(req),
+    path: '/',
     maxAge: 7 * 24 * 60 * 60 * 1000
   });
 }
 
-function saveAdminSession(res, adminData) {
+function saveAdminSession(req, res, adminData) {
   const cleanPayload = { ...adminData };
   delete cleanPayload.iat;
   delete cleanPayload.exp;
@@ -88,16 +152,17 @@ function saveAdminSession(res, adminData) {
   res.cookie('admin_session', token, {
     httpOnly: true,
     sameSite: 'lax',
-    secure: false,
+    secure: isSecureRequest(req),
+    path: '/',
     maxAge: 12 * 60 * 60 * 1000
   });
 }
 
-// Middleware: Require User Auth
+// Middleware: Require Connected Database Session
 function requireUserAuth(req, res, next) {
   const session = getUserSession(req);
-  if (!session) {
-    return res.status(401).json({ detail: 'Not authenticated. Please log in.' });
+  if (!session || !session.access_token) {
+    return res.status(401).json({ detail: 'Database connection required. Please connect your organization database in Settings.' });
   }
   req.userSession = session;
   next();
@@ -114,21 +179,19 @@ function requireAdminAuth(req, res, next) {
 }
 
 // -------------------------------------------------------------
-// USER AUTHENTICATION & IDENTITY ENDPOINTS (Hostinger side)
+// USER AUTHENTICATION & IDENTITY ENDPOINTS
 // -------------------------------------------------------------
 
-// Hostinger User Login
-app.post('/api/user/login', (req, res) => {
+// Hostinger User Login (Legacy compatibility endpoint)
+app.post('/api/user/login', authRateLimiter, (req, res) => {
   const { email, password } = req.body || {};
   if (!email || !password) {
     return res.status(400).json({ detail: 'Email and password are required' });
   }
 
-  // Simulate Hostinger user database verification or demo user lookup
   const cleanEmail = email.trim().toLowerCase();
   const userId = `hostinger_user_${cleanEmail.replace(/[^a-z0-9]/g, '_')}`;
 
-  // Preserve existing database connection links if session already existed
   const existing = getUserSession(req) || {};
 
   const sessionData = {
@@ -140,7 +203,7 @@ app.post('/api/user/login', (req, res) => {
     refresh_token: existing.refresh_token || null
   };
 
-  saveUserSession(res, sessionData);
+  saveUserSession(req, res, sessionData);
 
   return res.json({
     success: true,
@@ -161,15 +224,15 @@ app.post('/api/user/logout', (req, res) => {
 
 app.get('/api/user/session', (req, res) => {
   const session = getUserSession(req);
-  if (!session) {
-    return res.json({ authenticated: false });
+  if (!session || !session.access_token || !session.client_slug) {
+    return res.json({ authenticated: false, connected: false });
   }
   return res.json({
     authenticated: true,
+    connected: true,
     user: {
       id: session.user_id,
-      email: session.email,
-      linked: !!(session.client_slug && session.access_token),
+      linked: true,
       client_slug: session.client_slug,
       client_name: session.client_name
     }
@@ -177,72 +240,98 @@ app.get('/api/user/session', (req, res) => {
 });
 
 // -------------------------------------------------------------
-// GATEWAY ACCOUNT LINKING ENDPOINTS
+// GATEWAY ACCOUNT LINKING ENDPOINTS (Direct Backend Auth)
 // -------------------------------------------------------------
 
-// POST /api/auth/link
-app.post('/api/auth/link', requireUserAuth, async (req, res) => {
+// POST /api/auth/link - Connect client dashboard to VPS backend schema
+app.post('/api/auth/link', authRateLimiter, async (req, res) => {
   const { client_slug, username, password } = req.body || {};
   if (!client_slug || !username || !password) {
     return res.status(400).json({ detail: 'Organization slug, username, and password are required' });
   }
 
+  const cleanSlug = client_slug.trim().toLowerCase();
+  if (!isValidSlug(cleanSlug)) {
+    return res.status(400).json({ detail: 'Invalid organization slug format. Use 2-32 lowercase letters, numbers, hyphens, or underscores.' });
+  }
+
   try {
+    const existingSession = getUserSession(req) || {};
+    const userId = existingSession.user_id || `dash_user_${username.trim().toLowerCase()}`;
+
     const gatewayRes = await callGateway('/api/auth/link', 'POST', {
-      hostinger_user_id: req.userSession.user_id,
-      client_slug: client_slug.trim().toLowerCase(),
+      hostinger_user_id: userId,
+      client_slug: cleanSlug,
       username: username.trim(),
       password: password
     });
 
-    // Update user session cookie with access token & refresh token
-    const updatedSession = {
-      ...req.userSession,
+    // Save backend tokens securely in HttpOnly session cookie
+    const sessionData = {
+      user_id: userId,
       client_slug: gatewayRes.client.slug,
       client_name: gatewayRes.client.name,
       access_token: gatewayRes.access_token,
       refresh_token: gatewayRes.refresh_token
     };
 
-    saveUserSession(res, updatedSession);
+    saveUserSession(req, res, sessionData);
 
     return res.json({
       success: true,
+      connected: true,
       client: gatewayRes.client
     });
   } catch (err) {
-    console.error('Link database error:', err.message);
-    return res.status(err.status || 500).json({ detail: err.message || 'Failed to link database' });
+    console.warn('Gateway link failed, attempting local Control Plane check:', err.message);
+
+    const org = await dbManager.getClientOrganization(cleanSlug);
+    if (!org) {
+      return res.status(401).json({ detail: 'Invalid organization slug, staff username, or password.' });
+    }
+
+    const authResult = await dbManager.validateStaffCredentials(cleanSlug, username, password);
+    if (!authResult.valid) {
+      return res.status(401).json({ detail: 'Invalid organization slug, staff username, or password.' });
+    }
+
+    const sessionData = {
+      user_id: `dash_user_${username.trim().toLowerCase()}`,
+      client_slug: org.client_slug,
+      client_name: org.client_name,
+      access_token: 'local_access_token',
+      refresh_token: 'local_refresh_token'
+    };
+
+    saveUserSession(req, res, sessionData);
+
+    return res.json({
+      success: true,
+      connected: true,
+      client: {
+        slug: org.client_slug,
+        name: org.client_name
+      }
+    });
   }
 });
 
-// POST /api/auth/unlink
-app.post('/api/auth/unlink', requireUserAuth, async (req, res) => {
-  const { client_slug } = req.userSession;
-  if (!client_slug) {
-    return res.status(400).json({ detail: 'No database connection to unlink' });
+// POST /api/auth/unlink - Disconnect client dashboard from VPS backend
+app.post('/api/auth/unlink', async (req, res) => {
+  const session = getUserSession(req);
+  if (session && session.client_slug) {
+    try {
+      await callGateway('/api/auth/unlink', 'POST', {
+        hostinger_user_id: session.user_id,
+        client_slug: session.client_slug
+      });
+    } catch (err) {
+      console.warn('Gateway unlink warning:', err.message);
+    }
   }
 
-  try {
-    await callGateway('/api/auth/unlink', 'POST', {
-      hostinger_user_id: req.userSession.user_id,
-      client_slug: client_slug
-    });
-  } catch (err) {
-    console.warn('Gateway unlink warning:', err.message);
-  }
-
-  const updatedSession = {
-    ...req.userSession,
-    client_slug: null,
-    client_name: null,
-    access_token: null,
-    refresh_token: null
-  };
-
-  saveUserSession(res, updatedSession);
-
-  return res.json({ success: true, message: 'Database unlinked successfully' });
+  res.clearCookie('user_session');
+  return res.json({ success: true, message: 'Database disconnected successfully' });
 });
 
 // -------------------------------------------------------------
@@ -272,7 +361,7 @@ async function fetchGatewayData(req, res, path) {
 
         session.access_token = refreshRes.access_token;
         session.refresh_token = refreshRes.refresh_token;
-        saveUserSession(res, session);
+        saveUserSession(req, res, session);
 
         // Retry data call with new access token
         const retryData = await callGateway(path, 'GET', null, {
@@ -316,24 +405,28 @@ app.get('/api/stats', requireUserAuth, async (req, res) => {
 // ADMIN CRM ENDPOINTS
 // -------------------------------------------------------------
 
-app.post('/api/admin/login', async (req, res) => {
+app.post('/api/admin/login', authRateLimiter, async (req, res) => {
   const { username, password } = req.body || {};
   if (!username || !password) {
     return res.status(400).json({ detail: 'Username and password required' });
   }
 
+  const cleanUser = String(username).trim();
+  const rawPass = String(password);
+
+  // 100% of admin authentications strictly query the Gateway API / PostgreSQL (gateway.admin_users)
   try {
-    const adminRes = await callGateway('/api/admin/login', 'POST', { username, password });
+    const adminRes = await callGateway('/api/admin/login', 'POST', { username: cleanUser, password: rawPass });
     const adminData = {
       admin_token: adminRes.token,
       username: adminRes.username,
-      role: adminRes.role
+      role: adminRes.role || 'admin'
     };
 
-    saveAdminSession(res, adminData);
-    return res.json({ success: true, username: adminRes.username, role: adminRes.role });
+    saveAdminSession(req, res, adminData);
+    return res.json({ success: true, username: adminRes.username, role: adminRes.role || 'admin' });
   } catch (err) {
-    return res.status(401).json({ detail: err.message || 'Invalid admin credentials' });
+    return res.status(401).json({ detail: 'Invalid admin credentials' });
   }
 });
 
@@ -357,52 +450,111 @@ app.get('/api/admin/clients', requireAdminAuth, async (req, res) => {
     });
     return res.json(clients);
   } catch (err) {
-    return res.status(err.status || 500).json({ detail: err.message });
+    const localClients = await dbManager.listClientOrganizations();
+    return res.json(localClients);
   }
 });
 
 app.post('/api/admin/clients', requireAdminAuth, async (req, res) => {
+  const { client_slug, client_name } = req.body || {};
+  if (!client_slug || !client_name) {
+    return res.status(400).json({ detail: 'client_slug and client_name are required' });
+  }
+
+  const cleanSlug = client_slug.trim().toLowerCase();
+  if (!isValidSlug(cleanSlug)) {
+    return res.status(400).json({ detail: 'Invalid client_slug format. Must be 2-32 lowercase alphanumeric characters, hyphens, or underscores.' });
+  }
+
+  const cleanName = client_name.trim().slice(0, 128);
+  const payload = {
+    ...req.body,
+    client_slug: cleanSlug,
+    client_name: cleanName,
+    login_schema: `${cleanSlug}_login`,
+    booking_schema: `${cleanSlug}_booking`
+  };
+
+  const regRecord = await dbManager.registerClientOrganization(payload);
+
   try {
-    const newClient = await callGateway('/api/admin/clients', 'POST', req.body, {
+    const newClient = await callGateway('/api/admin/clients', 'POST', payload, {
       Authorization: `Bearer ${req.adminSession.admin_token}`
     });
     return res.json(newClient);
   } catch (err) {
-    return res.status(err.status || 500).json({ detail: err.message });
+    return res.json(regRecord);
   }
+});
+
+app.delete('/api/admin/clients/:slug', requireAdminAuth, async (req, res) => {
+  const { slug } = req.params;
+  if (!slug) return res.status(400).json({ detail: 'slug is required' });
+
+  const cleanSlug = slug.trim().toLowerCase();
+  if (!isValidSlug(cleanSlug)) {
+    return res.status(400).json({ detail: 'Invalid client slug' });
+  }
+
+  await dbManager.deleteClientOrganization(cleanSlug);
+
+  try {
+    await callGateway(`/api/admin/clients/${cleanSlug}`, 'DELETE', null, {
+      Authorization: `Bearer ${req.adminSession.admin_token}`
+    });
+  } catch (err) {}
+
+  return res.json({ success: true, message: `Client organization '${cleanSlug}' deleted successfully.` });
+});
+
+app.get('/api/admin/staff-logins', requireAdminAuth, async (req, res) => {
+  const logins = await dbManager.listStaffLogins();
+  return res.json(logins);
 });
 
 app.post('/api/admin/client-login', requireAdminAuth, async (req, res) => {
+  const { client_slug, username, password } = req.body || {};
+  if (!client_slug || !username || !password) {
+    return res.status(400).json({ detail: 'client_slug, username, and password are required' });
+  }
+
+  const cleanSlug = client_slug.trim().toLowerCase();
+  if (!isValidSlug(cleanSlug)) {
+    return res.status(400).json({ detail: 'Invalid client_slug format' });
+  }
+
+  const cleanUsername = username.trim();
+  if (!isValidUsername(cleanUsername)) {
+    return res.status(400).json({ detail: 'Invalid username format. Must be 2-64 alphanumeric characters, dots, underscores, or hyphens.' });
+  }
+
+  const payload = { client_slug: cleanSlug, username: cleanUsername, password: String(password) };
+  const record = await dbManager.registerStaffLogin(cleanSlug, cleanUsername, password);
+
   try {
-    const result = await callGateway('/api/admin/client-login', 'POST', req.body, {
+    await callGateway('/api/admin/client-login', 'POST', payload, {
       Authorization: `Bearer ${req.adminSession.admin_token}`
     });
-    return res.json(result);
-  } catch (err) {
-    return res.status(err.status || 500).json({ detail: err.message });
-  }
+  } catch (err) {}
+
+  return res.json({ success: true, message: 'Staff login registered in Control Plane.', record });
 });
 
-app.post('/api/admin/link-user', requireAdminAuth, async (req, res) => {
-  try {
-    const result = await callGateway('/api/admin/link-user', 'POST', req.body, {
-      Authorization: `Bearer ${req.adminSession.admin_token}`
-    });
-    return res.json(result);
-  } catch (err) {
-    return res.status(err.status || 500).json({ detail: err.message });
+app.delete('/api/admin/staff-logins', requireAdminAuth, async (req, res) => {
+  const { client_slug, username } = req.body || {};
+  if (!client_slug || !username) {
+    return res.status(400).json({ detail: 'client_slug and username are required' });
   }
-});
 
-app.get('/api/admin/links', requireAdminAuth, async (req, res) => {
+  await dbManager.deleteStaffLogin(client_slug, username);
+
   try {
-    const links = await callGateway('/api/admin/links', 'GET', null, {
+    await callGateway('/api/admin/staff-logins', 'DELETE', req.body, {
       Authorization: `Bearer ${req.adminSession.admin_token}`
     });
-    return res.json(links);
-  } catch (err) {
-    return res.status(err.status || 500).json({ detail: err.message });
-  }
+  } catch (err) {}
+
+  return res.json({ success: true, message: `Staff credential '${username}' for org '${client_slug}' deleted.` });
 });
 
 app.post('/api/admin/revoke', requireAdminAuth, async (req, res) => {
@@ -449,7 +601,10 @@ app.get(['/kami', '/kami/'], (req, res) => {
 });
 
 app.get('/login', (req, res) => {
-  res.sendFile(path.join(__dirname, 'static', 'login.html'));
+  if (req.query.mode === 'admin' || req.query.mode === 'kami') {
+    return res.sendFile(path.join(__dirname, 'static', 'login.html'));
+  }
+  res.redirect('/');
 });
 
 app.get('/admin', (req, res) => {

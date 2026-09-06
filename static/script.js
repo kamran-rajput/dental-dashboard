@@ -35,18 +35,11 @@ async function checkSession() {
     const res = await fetch(SESSION_API);
     if (res.ok) {
       const data = await res.json();
-      if (data.authenticated && data.user) {
+      if ((data.connected || data.authenticated) && data.user) {
         isAuthenticated = true;
         userSession = data.user;
         updateConnectionStatusUI(true, userSession);
-
-        if (userSession.linked) {
-          await fetchData();
-        } else {
-          // Open settings modal if user hasn't linked VPS database yet
-          resetToDisconnectedState();
-          openSettingsModal();
-        }
+        await fetchData();
         return;
       }
     }
@@ -58,17 +51,22 @@ async function checkSession() {
   userSession = null;
   updateConnectionStatusUI(false);
   resetToDisconnectedState();
-  // Redirect to login page if unauthenticated
-  window.location.replace('/login');
 }
 
 // Update Header, Sidebar, and Settings UI according to connection state
 function updateConnectionStatusUI(connected, user = null) {
   const headerStatus = document.getElementById('header-conn-status');
   const footerStatus = document.getElementById('footer-conn-status');
+  const headerConnectBtn = document.getElementById('header-connect-btn');
+  const headerDisconnectBtn = document.getElementById('header-disconnect-btn');
+  const headerUserProfile = document.getElementById('header-user-profile');
+  const headerUserName = document.getElementById('header-user-name');
+  const headerUserAvatar = document.getElementById('header-user-avatar');
 
-  if (connected && user && user.linked) {
+  if (connected && user) {
     const clientName = user.client_name || user.client_slug || 'Client DB';
+    const initials = clientName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() || 'DB';
+
     if (headerStatus) {
       headerStatus.className = "hidden sm:inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 cursor-pointer";
       headerStatus.onclick = openSettingsModal;
@@ -78,28 +76,36 @@ function updateConnectionStatusUI(connected, user = null) {
       footerStatus.className = "cursor-pointer text-emerald-600 font-semibold font-mono text-[11px] bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200";
       footerStatus.textContent = escapeHtml(clientName);
     }
+
+    if (headerUserProfile) headerUserProfile.classList.remove('hidden');
+    if (headerUserName) headerUserName.textContent = clientName;
+    if (headerUserAvatar) headerUserAvatar.textContent = initials;
+
+    if (headerConnectBtn) headerConnectBtn.classList.add('hidden');
+    if (headerDisconnectBtn) {
+      headerDisconnectBtn.classList.remove('hidden');
+      headerDisconnectBtn.classList.add('flex');
+    }
+
     updateSettingsModalUI(true, user);
-  } else if (connected && user) {
+  } else {
     if (headerStatus) {
       headerStatus.className = "hidden sm:inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200 cursor-pointer";
       headerStatus.onclick = openSettingsModal;
-      headerStatus.innerHTML = `<i class="fa-solid fa-triangle-exclamation mr-1 text-amber-600"></i>Connect Database`;
+      headerStatus.innerHTML = `<i class="fa-solid fa-plug mr-1 text-amber-600"></i>Not Connected`;
     }
     if (footerStatus) {
       footerStatus.className = "cursor-pointer text-amber-600 font-semibold font-mono text-[11px] bg-amber-50 px-2 py-0.5 rounded border border-amber-200";
-      footerStatus.textContent = "DB Unlinked";
-    }
-    updateSettingsModalUI(false, user);
-  } else {
-    if (headerStatus) {
-      headerStatus.className = "hidden sm:inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-50 text-rose-600 border border-rose-200";
-      headerStatus.onclick = null;
-      headerStatus.innerHTML = `<i class="fa-solid fa-circle-xmark mr-1"></i>Not Connected`;
-    }
-    if (footerStatus) {
-      footerStatus.className = "cursor-pointer text-rose-600 font-semibold font-mono text-[11px] bg-rose-50 px-2 py-0.5 rounded border border-rose-200";
       footerStatus.textContent = "Not connected";
     }
+
+    if (headerUserProfile) headerUserProfile.classList.add('hidden');
+    if (headerConnectBtn) headerConnectBtn.classList.remove('hidden');
+    if (headerDisconnectBtn) {
+      headerDisconnectBtn.classList.add('hidden');
+      headerDisconnectBtn.classList.remove('flex');
+    }
+
     updateSettingsModalUI(false, null);
   }
 }
@@ -997,18 +1003,18 @@ function updateSettingsModalUI(linked, user = null) {
       statusIcon.innerHTML = `<i class="fa-solid fa-plug-circle-check"></i>`;
     }
     if (statusTitle) statusTitle.textContent = user.client_name || `Organization: ${user.client_slug}`;
-    if (statusSub) statusSub.textContent = `Connected via Hostinger ID ${user.id}`;
+    if (statusSub) statusSub.textContent = `Connected to active schema: '${user.client_slug}'`;
     if (btnUnlink) btnUnlink.classList.remove('hidden');
 
     const slugInput = document.getElementById('link-client-slug');
     if (slugInput && user.client_slug) slugInput.value = user.client_slug;
   } else {
     if (statusIcon) {
-      statusIcon.className = "w-9 h-9 rounded-lg bg-rose-100 text-rose-600 flex items-center justify-center text-sm font-bold";
+      statusIcon.className = "w-9 h-9 rounded-lg bg-amber-100 text-amber-600 flex items-center justify-center text-sm font-bold";
       statusIcon.innerHTML = `<i class="fa-solid fa-plug-circle-xmark"></i>`;
     }
     if (statusTitle) statusTitle.textContent = "Database Disconnected";
-    if (statusSub) statusSub.textContent = "No active VPS client schema linked";
+    if (statusSub) statusSub.textContent = "No active VPS organization database linked";
     if (btnUnlink) btnUnlink.classList.add('hidden');
   }
 }
@@ -1087,18 +1093,7 @@ async function handleUnlinkDatabase() {
 
 
 async function handleLogout() {
-  try {
-    const res = await fetch(LOGOUT_API, { method: 'POST' });
-    if (res.ok) {
-      isAuthenticated = false;
-      currentUsername = '';
-      updateConnectionStatusUI(false);
-      resetToDisconnectedState();
-      window.location.replace('/login');
-    }
-  } catch (err) {
-    console.error("Logout error:", err);
-  }
+  await handleUnlinkDatabase();
 }
 
 function togglePasswordVisibility() {

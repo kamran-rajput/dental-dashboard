@@ -64,7 +64,7 @@
   <main class="flex-1 p-6 space-y-6 max-w-7xl w-full mx-auto">
     
     <!-- STATS KPI CARDS -->
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
       <!-- Card 1: Total Client Organizations -->
       <div class="bg-slate-800/80 border border-slate-700/80 rounded-2xl p-5 shadow-lg space-y-2">
         <div class="flex items-center justify-between">
@@ -75,36 +75,21 @@
         </div>
         <div class="flex items-baseline justify-between">
           <span id="admin-kpi-clients" class="text-3xl font-black text-white">0</span>
-          <span class="text-xs text-indigo-400 font-semibold bg-indigo-950/80 px-2.5 py-0.5 rounded-full border border-indigo-800/60">Isolated Schemas</span>
+          <span class="text-xs text-indigo-400 font-semibold bg-indigo-950/80 px-2.5 py-0.5 rounded-full border border-indigo-800/60">Isolated Databases</span>
         </div>
-        <p class="text-[11px] text-slate-400">Registered VPS tenant databases</p>
+        <p class="text-[11px] text-slate-400">Registered dedicated practice databases</p>
       </div>
 
-      <!-- Card 2: Total User Account Links -->
+      <!-- Card 2: Control Plane & Gateway Security -->
       <div class="bg-slate-800/80 border border-slate-700/80 rounded-2xl p-5 shadow-lg space-y-2">
         <div class="flex items-center justify-between">
-          <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Account Links</span>
-          <div class="w-9 h-9 rounded-xl bg-emerald-950 text-emerald-400 flex items-center justify-center border border-emerald-800/60">
-            <i class="fa-solid fa-link"></i>
-          </div>
-        </div>
-        <div class="flex items-baseline justify-between">
-          <span id="admin-kpi-links" class="text-3xl font-black text-white">0</span>
-          <span class="text-xs text-emerald-400 font-semibold bg-emerald-950/80 px-2.5 py-0.5 rounded-full border border-emerald-800/60">Hostinger Link</span>
-        </div>
-        <p class="text-[11px] text-slate-400">Active Hostinger user $\rightarrow$ client mappings</p>
-      </div>
-
-      <!-- Card 3: Security Status -->
-      <div class="bg-slate-800/80 border border-slate-700/80 rounded-2xl p-5 shadow-lg space-y-2">
-        <div class="flex items-center justify-between">
-          <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Gateway Security</span>
+          <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Control Plane Security</span>
           <div class="w-9 h-9 rounded-xl bg-violet-950 text-violet-400 flex items-center justify-center border border-violet-800/60">
             <i class="fa-solid fa-shield-halved"></i>
           </div>
         </div>
         <div class="flex items-baseline justify-between">
-          <span class="text-xl font-bold text-emerald-400">Active (Caddy)</span>
+          <span class="text-xl font-bold text-emerald-400">Active (Control Plane)</span>
           <span class="text-xs text-violet-400 font-semibold bg-violet-950/80 px-2.5 py-0.5 rounded-full border border-violet-800/60">JWT Sealed</span>
         </div>
         <p class="text-[11px] text-slate-400">Database ports restricted behind reverse proxy</p>
@@ -119,7 +104,7 @@
             <i class="fa-solid fa-building text-indigo-400"></i>
             <span>Client Directory & Tenant Schemas</span>
           </h2>
-          <p class="text-xs text-slate-400 mt-0.5">Manage multi-tenant organizations and PostgreSQL schema bindings.</p>
+          <p class="text-xs text-slate-400 mt-0.5">Manage multi-tenant organizations and PostgreSQL database connections.</p>
         </div>
 
         <div class="flex items-center space-x-3">
@@ -141,52 +126,48 @@
             <tr>
               <th class="py-3.5 px-4">Org Slug</th>
               <th class="py-3.5 px-4">Client Name</th>
-              <th class="py-3.5 px-4">Booking Schema</th>
-              <th class="py-3.5 px-4">Login Schema</th>
+              <th class="py-3.5 px-4">Database Name</th>
+              <th class="py-3.5 px-4">Database User</th>
+              <th class="py-3.5 px-4">Host / Port</th>
               <th class="py-3.5 px-4">Status</th>
+              <th class="py-3.5 px-4 text-right">Action</th>
             </tr>
           </thead>
           <tbody id="admin-clients-tbody" class="divide-y divide-slate-700/50">
             <tr>
-              <td colspan="5" class="text-center py-8 text-slate-500">Loading client directory...</td>
+              <td colspan="7" class="text-center py-8 text-slate-500">Loading client directory...</td>
             </tr>
           </tbody>
         </table>
       </div>
     </div>
 
-    <!-- USER LINKS & REVOCATION SECTION -->
+    <!-- STAFF CREDENTIALS SECTION -->
     <div class="bg-slate-800/80 border border-slate-700/80 rounded-2xl p-6 shadow-xl space-y-4">
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-700/60 pb-4">
+      <div class="flex items-center justify-between border-b border-slate-700/60 pb-4">
         <div>
           <h2 class="text-lg font-extrabold text-white flex items-center space-x-2">
-            <i class="fa-solid fa-users-gear text-emerald-400"></i>
-            <span>Hostinger User Links & Access Control</span>
+            <i class="fa-solid fa-user-shield text-emerald-400"></i>
+            <span>Staff Credentials & Provisioned Logins</span>
           </h2>
-          <p class="text-xs text-slate-400 mt-0.5">Map Hostinger user identities to client organizations or revoke access tokens.</p>
+          <p class="text-xs text-slate-400 mt-0.5">Active practice staff accounts and credentials provisioned in Control Plane.</p>
         </div>
-
-        <button onclick="openModal('modal-link-user')" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all shadow-lg shadow-emerald-600/30 flex items-center space-x-1.5">
-          <i class="fa-solid fa-link"></i>
-          <span>Link Hostinger User</span>
-        </button>
       </div>
 
-      <!-- USER LINKS TABLE -->
       <div class="overflow-x-auto">
         <table class="w-full text-left text-xs text-slate-300">
           <thead class="bg-slate-900/60 text-slate-400 font-bold border-b border-slate-700 uppercase tracking-wider text-[10px]">
             <tr>
-              <th class="py-3.5 px-4">Hostinger User ID</th>
-              <th class="py-3.5 px-4">Linked Client Slug</th>
-              <th class="py-3.5 px-4">Linked Username</th>
+              <th class="py-3.5 px-4">Org Slug</th>
+              <th class="py-3.5 px-4">Staff Username</th>
+              <th class="py-3.5 px-4">Staff Password</th>
               <th class="py-3.5 px-4">Created Date</th>
               <th class="py-3.5 px-4 text-right">Action</th>
             </tr>
           </thead>
-          <tbody id="admin-links-tbody" class="divide-y divide-slate-700/50">
+          <tbody id="admin-staff-tbody" class="divide-y divide-slate-700/50">
             <tr>
-              <td colspan="5" class="text-center py-8 text-slate-500">Loading user links...</td>
+              <td colspan="5" class="text-center py-8 text-slate-500">Loading staff credentials...</td>
             </tr>
           </tbody>
         </table>
@@ -200,39 +181,56 @@
     <div class="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl p-6 space-y-4">
       <div class="flex items-center justify-between border-b border-slate-800 pb-3">
         <h3 class="font-bold text-base text-white flex items-center space-x-2">
-          <i class="fa-solid fa-building-circle-check text-indigo-400"></i>
-          <span>Register New Client Organization</span>
+          <i class="fa-solid fa-database text-indigo-400"></i>
+          <span>Register Dedicated Client Database</span>
         </h3>
         <button onclick="closeModal('modal-add-client')" class="text-slate-400 hover:text-slate-200"><i class="fa-solid fa-xmark"></i></button>
       </div>
 
       <form onsubmit="handleCreateClient(event)" class="space-y-4 text-xs">
-        <div>
-          <label for="new-client-slug" class="block font-semibold text-slate-300 mb-1">Organization Slug (unique key)</label>
-          <input type="text" id="new-client-slug" required placeholder="e.g. smile_dental" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white font-mono focus:outline-none focus:border-indigo-500">
-        </div>
-
-        <div>
-          <label for="new-client-name" class="block font-semibold text-slate-300 mb-1">Organization Full Name</label>
-          <input type="text" id="new-client-name" required placeholder="e.g. Smile Dental Practice" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500">
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label for="new-client-slug" class="block font-semibold text-slate-300 mb-1">Org Slug (unique)</label>
+            <input type="text" id="new-client-slug" required class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white font-mono focus:outline-none focus:border-indigo-500">
+          </div>
+          <div>
+            <label for="new-client-name" class="block font-semibold text-slate-300 mb-1">Organization Name</label>
+            <input type="text" id="new-client-name" required class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500">
+          </div>
         </div>
 
         <div class="grid grid-cols-2 gap-3">
           <div>
-            <label for="new-booking-schema" class="block font-semibold text-slate-300 mb-1">Booking Schema</label>
-            <input type="text" id="new-booking-schema" placeholder="e.g. smile_booking" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white font-mono focus:outline-none focus:border-indigo-500">
+            <label for="new-db-name" class="block font-semibold text-slate-300 mb-1">Database Name</label>
+            <input type="text" id="new-db-name" required class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white font-mono focus:outline-none focus:border-indigo-500">
           </div>
           <div>
-            <label for="new-login-schema" class="block font-semibold text-slate-300 mb-1">Login Schema</label>
-            <input type="text" id="new-login-schema" placeholder="e.g. smile_login" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white font-mono focus:outline-none focus:border-indigo-500">
+            <label for="new-db-user" class="block font-semibold text-slate-300 mb-1">Database User</label>
+            <input type="text" id="new-db-user" required class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white font-mono focus:outline-none focus:border-indigo-500">
           </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label for="new-db-host" class="block font-semibold text-slate-300 mb-1">Database Host</label>
+            <input type="text" id="new-db-host" value="n8n.cubifai.com" required class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white font-mono focus:outline-none focus:border-indigo-500">
+          </div>
+          <div>
+            <label for="new-db-port" class="block font-semibold text-slate-300 mb-1">Database Port</label>
+            <input type="number" id="new-db-port" value="5434" required class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white font-mono focus:outline-none focus:border-indigo-500">
+          </div>
+        </div>
+
+        <div>
+          <label for="new-db-pass" class="block font-semibold text-slate-300 mb-1">Database Password</label>
+          <input type="password" id="new-db-pass" value="9876@Houstun" required class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white font-mono focus:outline-none focus:border-indigo-500">
         </div>
 
         <div id="add-client-msg" class="hidden p-3 rounded-xl border text-xs font-medium"></div>
 
         <div class="flex justify-end space-x-2 pt-2">
           <button type="button" onclick="closeModal('modal-add-client')" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold">Cancel</button>
-          <button type="submit" id="btn-submit-client" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold shadow-lg shadow-indigo-600/30">Save Organization</button>
+          <button type="submit" id="btn-submit-client" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold shadow-lg shadow-indigo-600/30">Save Database Registry</button>
         </div>
       </form>
     </div>
@@ -252,17 +250,17 @@
       <form onsubmit="handleCreateStaffLogin(event)" class="space-y-4 text-xs">
         <div>
           <label for="staff-client-slug" class="block font-semibold text-slate-300 mb-1">Organization Slug</label>
-          <input type="text" id="staff-client-slug" required placeholder="e.g. houston" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white font-mono focus:outline-none focus:border-indigo-500">
+          <input type="text" id="staff-client-slug" required class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white font-mono focus:outline-none focus:border-indigo-500">
         </div>
 
         <div>
           <label for="staff-username" class="block font-semibold text-slate-300 mb-1">Staff Username</label>
-          <input type="text" id="staff-username" required placeholder="e.g. staff_john" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500">
+          <input type="text" id="staff-username" required class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500">
         </div>
 
         <div>
-          <label for="staff-password" class="block font-semibold text-slate-300 mb-1">Password</label>
-          <input type="password" id="staff-password" required placeholder="••••••••" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500">
+          <label for="staff-password" class="block font-semibold text-slate-300 mb-1">Staff Password</label>
+          <input type="password" id="staff-password" required class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white font-mono focus:outline-none focus:border-indigo-500">
         </div>
 
         <div id="add-staff-msg" class="hidden p-3 rounded-xl border text-xs font-medium"></div>
@@ -270,43 +268,6 @@
         <div class="flex justify-end space-x-2 pt-2">
           <button type="button" onclick="closeModal('modal-add-staff')" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold">Cancel</button>
           <button type="submit" id="btn-submit-staff" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold shadow-lg shadow-emerald-600/30">Create Staff Credentials</button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- MODAL 3: LINK HOSTINGER USER -->
-  <div id="modal-link-user" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-    <div class="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl p-6 space-y-4">
-      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
-        <h3 class="font-bold text-base text-white flex items-center space-x-2">
-          <i class="fa-solid fa-link text-indigo-400"></i>
-          <span>Link Hostinger User to Client</span>
-        </h3>
-        <button onclick="closeModal('modal-link-user')" class="text-slate-400 hover:text-slate-200"><i class="fa-solid fa-xmark"></i></button>
-      </div>
-
-      <form onsubmit="handleAdminLinkUser(event)" class="space-y-4 text-xs">
-        <div>
-          <label for="link-hostinger-id" class="block font-semibold text-slate-300 mb-1">Hostinger User ID</label>
-          <input type="text" id="link-hostinger-id" required placeholder="e.g. hostinger_user_john_gmail_com" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white font-mono focus:outline-none focus:border-indigo-500">
-        </div>
-
-        <div>
-          <label for="admin-link-slug" class="block font-semibold text-slate-300 mb-1">Organization Slug</label>
-          <input type="text" id="admin-link-slug" required placeholder="e.g. houston" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white font-mono focus:outline-none focus:border-indigo-500">
-        </div>
-
-        <div>
-          <label for="admin-link-username" class="block font-semibold text-slate-300 mb-1">Client Username</label>
-          <input type="text" id="admin-link-username" required placeholder="e.g. houstunUser" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500">
-        </div>
-
-        <div id="admin-link-msg" class="hidden p-3 rounded-xl border text-xs font-medium"></div>
-
-        <div class="flex justify-end space-x-2 pt-2">
-          <button type="button" onclick="closeModal('modal-link-user')" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold">Cancel</button>
-          <button type="submit" id="btn-submit-link-user" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold shadow-lg shadow-indigo-600/30">Save Account Link</button>
         </div>
       </form>
     </div>
