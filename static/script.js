@@ -24,7 +24,6 @@ let actionsChart = null;
 document.addEventListener('DOMContentLoaded', () => {
   resetToDisconnectedState();
   switchView('dashboard');
-  loadPublicClients();
 
   // Check active user session
   checkSession();
@@ -984,36 +983,9 @@ function renderAnalyticsCharts() {
 }
 
 // Settings Modal Control Functions
-async function loadPublicClients() {
-  const selectEl = document.getElementById('link-client-slug');
-  if (!selectEl) return;
-  try {
-    const res = await fetch('/api/public/clients');
-    if (res.ok) {
-      const clients = await res.json();
-      if (Array.isArray(clients) && clients.length > 0) {
-        const currentVal = selectEl.value;
-        selectEl.innerHTML = '';
-        clients.forEach(c => {
-          const opt = document.createElement('option');
-          opt.value = c.client_slug;
-          opt.textContent = `${c.client_name || c.client_slug} (${c.client_slug})`;
-          if (c.client_slug === currentVal || c.client_slug === 'houston') {
-            opt.selected = true;
-          }
-          selectEl.appendChild(opt);
-        });
-      }
-    }
-  } catch (err) {
-    console.error('Error fetching public clients:', err);
-  }
-}
-
 function openSettingsModal() {
   const modal = document.getElementById('modal-settings');
   if (modal) modal.classList.remove('hidden');
-  loadPublicClients();
 }
 
 function updateSettingsModalUI(linked, user = null) {
