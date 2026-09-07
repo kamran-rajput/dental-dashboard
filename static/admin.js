@@ -21,6 +21,9 @@ async function checkAdminSession() {
   window.location.replace('/login?mode=admin');
 }
 
+let adminClients = [];
+let adminStaff = [];
+
 async function fetchAdminData() {
   try {
     const [clientsRes, staffRes] = await Promise.all([
@@ -34,16 +37,85 @@ async function fetchAdminData() {
     }
 
     if (clientsRes.ok) {
-      const clients = await clientsRes.json();
-      renderClientsTable(clients);
+      adminClients = await clientsRes.json();
+      renderClientsTable(adminClients);
     }
 
     if (staffRes.ok) {
-      const staffList = await staffRes.json();
-      renderStaffTable(staffList);
+      adminStaff = await staffRes.json();
+      renderStaffTable(adminStaff);
     }
+
+    populateStaffClientDropdown(adminClients, adminStaff);
   } catch (err) {
     console.error('Error fetching admin data:', err);
+  }
+}
+
+function populateStaffClientDropdown(clients, staffList = []) {
+  const selectEl = document.getElementById('staff-client-slug');
+  const emptyHintEl = document.getElementById('staff-client-empty-hint');
+  const submitBtn = document.getElementById('btn-submit-staff');
+  if (!selectEl) return;
+
+  const validClients = Array.isArray(clients) ? clients : [];
+  const validStaff = Array.isArray(staffList) ? staffList : [];
+  selectEl.innerHTML = '<option value="" disabled selected>Select an existing client organization...</option>';
+
+  if (validClients.length === 0) {
+    if (emptyHintEl) emptyHintEl.classList.remove('hidden');
+    if (submitBtn) submitBtn.disabled = true;
+    return;
+  }
+
+  if (emptyHintEl) emptyHintEl.classList.add('hidden');
+  if (submitBtn) submitBtn.disabled = false;
+
+  validClients.forEach(c => {
+    const slug = c.client_slug || c.slug;
+    const name = c.client_name || c.name || slug;
+    const existing = validStaff.find(s => s.client_slug === slug);
+    const opt = document.createElement('option');
+    opt.value = slug;
+    opt.textContent = existing
+      ? `${name} (${slug}) — [Current User: ${existing.username}]`
+      : `${name} (${slug}) — [No Account]`;
+    selectEl.appendChild(opt);
+  });
+}
+
+function onStaffClientSelect() {
+  const selectEl = document.getElementById('staff-client-slug');
+  if (!selectEl) return;
+  const slug = selectEl.value;
+  const existing = adminStaff.find(s => s.client_slug === slug);
+  const infoEl = document.getElementById('staff-existing-info');
+  const userField = document.getElementById('staff-username');
+  const passField = document.getElementById('staff-password');
+  const submitBtn = document.getElementById('btn-submit-staff');
+
+  if (existing) {
+    if (userField) userField.value = existing.username;
+    if (passField) passField.value = existing.password || '';
+    if (infoEl) {
+      infoEl.innerHTML = `<i class="fa-solid fa-circle-info mr-1.5 text-indigo-400"></i>Active staff account already exists for <strong>${escapeHtml(slug)}</strong> (${escapeHtml(existing.username)}). Saving will update the single active credential.`;
+      infoEl.classList.remove('hidden');
+    }
+    if (submitBtn) submitBtn.textContent = "Update Staff Credentials";
+  } else {
+    if (userField) userField.value = '';
+    if (passField) passField.value = '';
+    if (infoEl) infoEl.classList.add('hidden');
+    if (submitBtn) submitBtn.textContent = "Create Staff Credentials";
+  }
+}
+
+function handleEditStaff(slug) {
+  openModal('modal-add-staff');
+  const selectEl = document.getElementById('staff-client-slug');
+  if (selectEl) {
+    selectEl.value = slug;
+    onStaffClientSelect();
   }
 }
 
@@ -106,6 +178,9 @@ function renderStaffTable(staffList) {
         <td class="py-3.5 px-4 font-mono text-amber-300 font-semibold text-xs">${escapeHtml(passwordDisplay)}</td>
         <td class="py-3.5 px-4 text-slate-400 text-[11px] font-mono">${dateStr}</td>
         <td class="py-3.5 px-4 text-right">
+          <button onclick="handleEditStaff('${escapeHtml(s.client_slug)}')" title="Update Staff Credential" class="px-2.5 py-1 mr-1.5 rounded-lg bg-indigo-950 hover:bg-indigo-900 text-indigo-300 border border-indigo-800/60 text-xs font-semibold transition-all">
+            <i class="fa-solid fa-pen-to-square mr-1"></i> Edit
+          </button>
           <button onclick="handleDeleteStaff('${escapeHtml(s.client_slug)}', '${escapeHtml(s.username)}')" title="Delete Staff Credential" class="px-2.5 py-1 rounded-lg bg-rose-950 hover:bg-rose-900 text-rose-300 border border-rose-800/60 text-xs font-semibold transition-all">
             <i class="fa-solid fa-trash mr-1"></i> Delete
           </button>
@@ -217,6 +292,13 @@ async function handleCreateStaffLogin(e) {
   btn.disabled = true;
   msgEl.classList.add('hidden');
 
+  if (!client_slug) {
+    msgEl.className = "p-3 rounded-xl border text-xs font-medium bg-rose-950 text-rose-300 border-rose-800";
+    msgEl.textContent = "Please select a client organization from the dropdown.";
+    msgEl.classList.remove('hidden');
+    btn.disabled = false;
+    return;
+  }
   if (!/^[a-z0-9_-]{2,32}$/.test(client_slug)) {
     msgEl.className = "p-3 rounded-xl border text-xs font-medium bg-rose-950 text-rose-300 border-rose-800";
     msgEl.textContent = "Invalid organization slug format.";

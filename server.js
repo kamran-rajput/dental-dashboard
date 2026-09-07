@@ -508,8 +508,15 @@ app.delete('/api/admin/clients/:slug', requireAdminAuth, async (req, res) => {
 });
 
 app.get('/api/admin/staff-logins', requireAdminAuth, async (req, res) => {
-  const logins = await dbManager.listStaffLogins();
-  return res.json(logins);
+  try {
+    const gatewayLogins = await callGateway('/api/admin/staff-logins', 'GET', null, {
+      Authorization: `Bearer ${req.adminSession.admin_token}`
+    });
+    return res.json(gatewayLogins);
+  } catch (err) {
+    const logins = await dbManager.listStaffLogins();
+    return res.json(logins);
+  }
 });
 
 app.post('/api/admin/client-login', requireAdminAuth, async (req, res) => {
@@ -528,16 +535,33 @@ app.post('/api/admin/client-login', requireAdminAuth, async (req, res) => {
     return res.status(400).json({ detail: 'Invalid username format. Must be 2-64 alphanumeric characters, dots, underscores, or hyphens.' });
   }
 
-  const payload = { client_slug: cleanSlug, username: cleanUsername, password: String(password) };
-  const record = await dbManager.registerStaffLogin(cleanSlug, cleanUsername, password);
-
+  // Strict Validation: Organization MUST exist in the system before staff credentials can be created
+  let clientExists = false;
   try {
-    await callGateway('/api/admin/client-login', 'POST', payload, {
+    const clients = await callGateway('/api/admin/clients', 'GET', null, {
       Authorization: `Bearer ${req.adminSession.admin_token}`
     });
-  } catch (err) {}
+    clientExists = Array.isArray(clients) && clients.some(c => (c.client_slug || c.slug) === cleanSlug);
+  } catch (e) {
+    const org = await dbManager.getClientOrganization(cleanSlug);
+    clientExists = !!org;
+  }
 
-  return res.json({ success: true, message: 'Staff login registered in Control Plane.', record });
+  if (!clientExists) {
+    return res.status(404).json({ detail: `Client organization '${cleanSlug}' does not exist. Please register the client organization first.` });
+  }
+
+  const payload = { client_slug: cleanSlug, username: cleanUsername, password: String(password) };
+
+  try {
+    const gatewayRes = await callGateway('/api/admin/client-login', 'POST', payload, {
+      Authorization: `Bearer ${req.adminSession.admin_token}`
+    });
+    await dbManager.registerStaffLogin(cleanSlug, cleanUsername, password);
+    return res.json({ success: true, message: 'Staff login registered in Control Plane.', record: gatewayRes.client_login || payload });
+  } catch (err) {
+    return res.status(err.status || 500).json({ detail: err.message || 'Failed to register staff login' });
+  }
 });
 
 app.delete('/api/admin/staff-logins', requireAdminAuth, async (req, res) => {
@@ -546,15 +570,18 @@ app.delete('/api/admin/staff-logins', requireAdminAuth, async (req, res) => {
     return res.status(400).json({ detail: 'client_slug and username are required' });
   }
 
-  await dbManager.deleteStaffLogin(client_slug, username);
+  const cleanSlug = client_slug.trim().toLowerCase();
+  const cleanUsername = username.trim();
+
+  await dbManager.deleteStaffLogin(cleanSlug, cleanUsername);
 
   try {
-    await callGateway('/api/admin/staff-logins', 'DELETE', req.body, {
+    await callGateway('/api/admin/staff-logins', 'DELETE', { client_slug: cleanSlug, username: cleanUsername }, {
       Authorization: `Bearer ${req.adminSession.admin_token}`
     });
   } catch (err) {}
 
-  return res.json({ success: true, message: `Staff credential '${username}' for org '${client_slug}' deleted.` });
+  return res.json({ success: true, message: `Staff credential '${cleanUsername}' for org '${cleanSlug}' deleted.` });
 });
 
 app.post('/api/admin/revoke', requireAdminAuth, async (req, res) => {

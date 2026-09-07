@@ -85,6 +85,14 @@ async function registerStaffLogin(client_slug, username, password) {
   const cleanUser = (username || '').trim();
   if (!cleanSlug || !cleanUser) throw new Error('client_slug and username are required');
   const pwd = password || 'password123';
+
+  // Enforce strictly one staff user per organization slug
+  for (const [key, val] of staffLoginsRegistry.entries()) {
+    if (val.client_slug === cleanSlug) {
+      staffLoginsRegistry.delete(key);
+    }
+  }
+
   const key = `${cleanSlug}:${cleanUser}`;
   const record = {
     client_slug: cleanSlug,

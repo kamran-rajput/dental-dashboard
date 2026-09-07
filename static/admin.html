@@ -249,9 +249,16 @@
 
       <form onsubmit="handleCreateStaffLogin(event)" class="space-y-4 text-xs">
         <div>
-          <label for="staff-client-slug" class="block font-semibold text-slate-300 mb-1">Organization Slug</label>
-          <input type="text" id="staff-client-slug" required class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white font-mono focus:outline-none focus:border-indigo-500">
+          <label for="staff-client-slug" class="block font-semibold text-slate-300 mb-1">Target Organization</label>
+          <select id="staff-client-slug" required onchange="onStaffClientSelect()" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500">
+            <option value="" disabled selected>Select an existing client organization...</option>
+          </select>
+          <p id="staff-client-empty-hint" class="hidden text-[11px] text-amber-400 mt-1">
+            <i class="fa-solid fa-triangle-exclamation mr-1"></i>No client organizations found. Please register a client first.
+          </p>
         </div>
+
+        <div id="staff-existing-info" class="hidden p-2.5 rounded-xl bg-indigo-950/60 border border-indigo-800/80 text-indigo-300 text-[11px]"></div>
 
         <div>
           <label for="staff-username" class="block font-semibold text-slate-300 mb-1">Staff Username</label>
