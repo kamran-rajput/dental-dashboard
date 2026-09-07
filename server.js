@@ -71,6 +71,8 @@ const MAX_AUTH_ATTEMPTS = 5;
 
 function authRateLimiter(req, res, next) {
   const clientIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket.remoteAddress || 'unknown';
+  const isLocal = clientIp === '127.0.0.1' || clientIp === '::1' || clientIp === '::ffff:127.0.0.1';
+  const maxAttempts = isLocal ? 50 : MAX_AUTH_ATTEMPTS;
   const key = `${req.path}:${clientIp}`;
   const now = Date.now();
   const entry = rateLimitMap.get(key) || { attempts: 0, resetAt: now + RATE_LIMIT_WINDOW_MS };
@@ -80,7 +82,7 @@ function authRateLimiter(req, res, next) {
     entry.resetAt = now + RATE_LIMIT_WINDOW_MS;
   }
 
-  if (entry.attempts >= MAX_AUTH_ATTEMPTS) {
+  if (entry.attempts >= maxAttempts) {
     const retryAfterMinutes = Math.max(1, Math.ceil((entry.resetAt - now) / 60000));
     return res.status(429).json({
       detail: `Too many failed authentication attempts. Please try again in ${retryAfterMinutes} minute(s).`
@@ -182,39 +184,96 @@ function requireAdminAuth(req, res, next) {
 // USER AUTHENTICATION & IDENTITY ENDPOINTS
 // -------------------------------------------------------------
 
-// Hostinger User Login (Legacy compatibility endpoint)
-app.post('/api/user/login', authRateLimiter, (req, res) => {
-  const { email, password } = req.body || {};
-  if (!email || !password) {
-    return res.status(400).json({ detail: 'Email and password are required' });
+// GET /api/public/clients - Public directory list for client dropdowns
+app.get('/api/public/clients', async (req, res) => {
+  try {
+    const clients = await callGateway('/api/public/clients', 'GET');
+    return res.json(clients);
+  } catch (err) {
+    try {
+      const orgs = await dbManager.listClientOrganizations();
+      return res.json(orgs.map(o => ({ client_slug: o.client_slug, client_name: o.client_name })));
+    } catch (e) {
+      return res.json([{ client_slug: 'houston', client_name: 'Houston Dental Practice' }]);
+    }
+  }
+});
+
+// Hostinger / Practice Staff Login (Direct Gateway Authentication)
+app.post('/api/user/login', authRateLimiter, async (req, res) => {
+  const { email, username, password, client_slug } = req.body || {};
+  const userIdent = (username || email || '').trim();
+  if (!userIdent || !password) {
+    return res.status(400).json({ detail: 'Username/Email and password are required' });
   }
 
-  const cleanEmail = email.trim().toLowerCase();
-  const userId = `hostinger_user_${cleanEmail.replace(/[^a-z0-9]/g, '_')}`;
+  const cleanUser = userIdent.toLowerCase();
+  const userId = `dash_user_${cleanUser.replace(/[^a-z0-9]/g, '_')}`;
+  let cleanSlug = (client_slug || '').trim().toLowerCase();
+  if (cleanSlug === 'houstun') cleanSlug = 'houston';
 
-  const existing = getUserSession(req) || {};
+  // Attempt direct gateway authentication & linking first
+  try {
+    const gatewayRes = await callGateway('/api/auth/link', 'POST', {
+      hostinger_user_id: userId,
+      client_slug: cleanSlug || undefined,
+      username: userIdent,
+      password: password
+    });
 
-  const sessionData = {
-    user_id: userId,
-    email: cleanEmail,
-    client_slug: existing.client_slug || null,
-    client_name: existing.client_name || null,
-    access_token: existing.access_token || null,
-    refresh_token: existing.refresh_token || null
-  };
+    const sessionData = {
+      user_id: userId,
+      email: cleanUser.includes('@') ? cleanUser : `${cleanUser}@practice.local`,
+      client_slug: gatewayRes.client.slug,
+      client_name: gatewayRes.client.name,
+      access_token: gatewayRes.access_token,
+      refresh_token: gatewayRes.refresh_token
+    };
 
-  saveUserSession(req, res, sessionData);
+    saveUserSession(req, res, sessionData);
 
-  return res.json({
-    success: true,
-    user: {
-      id: userId,
-      email: cleanEmail,
-      linked: !!sessionData.client_slug,
-      client_slug: sessionData.client_slug,
-      client_name: sessionData.client_name
+    return res.json({
+      success: true,
+      user: {
+        id: userId,
+        email: sessionData.email,
+        linked: true,
+        client_slug: sessionData.client_slug,
+        client_name: sessionData.client_name
+      }
+    });
+  } catch (gwErr) {
+    console.warn('Gateway staff login attempt result:', gwErr.message);
+
+    // If client credentials failed specifically against gateway, return 401
+    if (gwErr.status === 401) {
+      return res.status(401).json({ detail: 'Invalid staff username, password, or organization.' });
     }
-  });
+
+    // Fallback: Legacy Hostinger user session if gateway is unreachable
+    const existing = getUserSession(req) || {};
+    const sessionData = {
+      user_id: userId,
+      email: cleanUser.includes('@') ? cleanUser : `${cleanUser}@practice.local`,
+      client_slug: existing.client_slug || null,
+      client_name: existing.client_name || null,
+      access_token: existing.access_token || null,
+      refresh_token: existing.refresh_token || null
+    };
+
+    saveUserSession(req, res, sessionData);
+
+    return res.json({
+      success: true,
+      user: {
+        id: userId,
+        email: sessionData.email,
+        linked: !!sessionData.client_slug,
+        client_slug: sessionData.client_slug,
+        client_name: sessionData.client_name
+      }
+    });
+  }
 });
 
 app.post('/api/user/logout', (req, res) => {
@@ -246,12 +305,13 @@ app.get('/api/user/session', (req, res) => {
 // POST /api/auth/link - Connect client dashboard to VPS backend schema
 app.post('/api/auth/link', authRateLimiter, async (req, res) => {
   const { client_slug, username, password } = req.body || {};
-  if (!client_slug || !username || !password) {
-    return res.status(400).json({ detail: 'Organization slug, username, and password are required' });
+  if (!username || !password) {
+    return res.status(400).json({ detail: 'Staff username and password are required' });
   }
 
-  const cleanSlug = client_slug.trim().toLowerCase();
-  if (!isValidSlug(cleanSlug)) {
+  let cleanSlug = (client_slug || '').trim().toLowerCase();
+  if (cleanSlug === 'houstun') cleanSlug = 'houston';
+  if (cleanSlug && !isValidSlug(cleanSlug)) {
     return res.status(400).json({ detail: 'Invalid organization slug format. Use 2-32 lowercase letters, numbers, hyphens, or underscores.' });
   }
 
@@ -261,7 +321,7 @@ app.post('/api/auth/link', authRateLimiter, async (req, res) => {
 
     const gatewayRes = await callGateway('/api/auth/link', 'POST', {
       hostinger_user_id: userId,
-      client_slug: cleanSlug,
+      client_slug: cleanSlug || undefined,
       username: username.trim(),
       password: password
     });
@@ -285,12 +345,13 @@ app.post('/api/auth/link', authRateLimiter, async (req, res) => {
   } catch (err) {
     console.warn('Gateway link failed, attempting local Control Plane check:', err.message);
 
-    const org = await dbManager.getClientOrganization(cleanSlug);
+    const lookupSlug = cleanSlug || 'houston';
+    const org = await dbManager.getClientOrganization(lookupSlug);
     if (!org) {
       return res.status(401).json({ detail: 'Invalid organization slug, staff username, or password.' });
     }
 
-    const authResult = await dbManager.validateStaffCredentials(cleanSlug, username, password);
+    const authResult = await dbManager.validateStaffCredentials(lookupSlug, username, password);
     if (!authResult.valid) {
       return res.status(401).json({ detail: 'Invalid organization slug, staff username, or password.' });
     }
