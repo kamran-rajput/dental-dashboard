@@ -31,14 +31,14 @@ async function provisionClient() {
   const args = parseArgs();
 
   const slug = (args.slug || 'houston').trim().toLowerCase();
-  const name = args.name || 'Houstun Family Practice';
-  const username = args.user || 'houstunUser';
-  const password = args.pass || '9876@Houstun';
+  const name = args.name || 'Houston Family Practice';
+  const username = args.user || 'client_viewer';
+  const password = args.pass || '9876@ClientViewer';
   const dbHost = args.dbhost || process.env.DB_HOST || 'n8n.cubifai.com';
   const dbPort = parseInt(args.dbport || process.env.DB_PORT || '5434', 10);
   const dbName = args.dbname || process.env.DB_NAME || 'client_databases';
-  const dbUser = args.dbuser || process.env.DB_USER || 'houstunUser';
-  const dbPass = args.dbpass || process.env.DB_PASSWORD || '9876@Houstun';
+  const dbUser = args.dbuser || process.env.DB_USER || 'client_viewer';
+  const dbPass = args.dbpass || process.env.DB_PASSWORD || '9876@ClientViewer';
 
   console.log(`\n--- Starting Provisioning for Client Organization '${slug}' ---`);
   console.log(`Target Database: ${dbHost}:${dbPort}/${dbName}`);
