@@ -43,7 +43,7 @@
     <!-- BRANDING HEADER -->
     <div class="text-center space-y-2">
       <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-white/10 backdrop-blur-md p-1 shadow-xl shadow-indigo-500/20 mb-2 border border-white/10">
-        <img src="/logo.png" alt="Cubifai Logo" class="w-full h-full object-contain">
+        <img id="portal-logo-img" src="/logo-client.png" alt="Cubifai Logo" class="w-full h-full object-contain">
       </div>
       <h1 class="text-2xl font-extrabold text-white tracking-tight">Cubifai <span class="text-indigo-400">Solutions</span></h1>
       <p id="portal-subtitle" class="text-xs text-slate-400 font-medium">Smart Practice CRM Client Sign In</p>
@@ -136,12 +136,15 @@
       const adminForm = document.getElementById('form-admin-login');
       const subtitleEl = document.getElementById('portal-subtitle');
 
+      const logoImg = document.getElementById('portal-logo-img');
       if (isAdminMode) {
+        if (logoImg) logoImg.src = '/logo.png';
         userForm.classList.add('hidden');
         adminForm.classList.remove('hidden');
         if (subtitleEl) subtitleEl.textContent = 'System Admin & Tenant Provisioning Portal';
         document.title = 'Cubifai Solutions — System Admin Sign In';
       } else {
+        if (logoImg) logoImg.src = '/logo-client.png';
         adminForm.classList.add('hidden');
         userForm.classList.remove('hidden');
         if (subtitleEl) subtitleEl.textContent = 'Smart Practice CRM Client Sign In';
