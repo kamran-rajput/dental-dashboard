@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Cubifai Solutions — Multi-Tenant Portal Sign In</title>
+  <link rel="icon" type="image/png" href="/logo.png">
   <!-- Google Fonts: Inter -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -41,8 +42,8 @@
     
     <!-- BRANDING HEADER -->
     <div class="text-center space-y-2">
-      <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-tr from-indigo-500 to-violet-600 text-white shadow-xl shadow-indigo-500/20 mb-2">
-        <i class="fa-solid fa-tooth text-2xl"></i>
+      <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-white/10 backdrop-blur-md p-1 shadow-xl shadow-indigo-500/20 mb-2 border border-white/10">
+        <img src="/logo.png" alt="Cubifai Logo" class="w-full h-full object-contain">
       </div>
       <h1 class="text-2xl font-extrabold text-white tracking-tight">Cubifai <span class="text-indigo-400">Solutions</span></h1>
       <p id="portal-subtitle" class="text-xs text-slate-400 font-medium">Smart Practice CRM Client Sign In</p>
@@ -129,7 +130,7 @@
     document.addEventListener('DOMContentLoaded', () => {
       const urlParams = new URLSearchParams(window.location.search);
       const path = window.location.pathname.toLowerCase();
-      const isAdminMode = path.includes('/kami') || urlParams.get('mode') === 'admin' || urlParams.get('mode') === 'kami';
+      const isAdminMode = path.includes('/myadmin') || urlParams.get('mode') === 'admin';
 
       const userForm = document.getElementById('form-user-login');
       const adminForm = document.getElementById('form-admin-login');
@@ -234,7 +235,7 @@
           alertEl.textContent = "Admin authenticated! Redirecting to Admin CRM...";
           alertEl.classList.remove('hidden');
           setTimeout(() => {
-            window.location.replace('/admin');
+            window.location.replace('/myadmin');
           }, 400);
         } else {
           alertEl.className = "p-3 rounded-xl text-xs font-medium bg-rose-50 border-rose-200 text-rose-800";

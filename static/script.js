@@ -73,8 +73,8 @@ function updateConnectionStatusUI(connected, user = null) {
       headerStatus.innerHTML = `<i class="fa-solid fa-circle-check mr-1 text-emerald-600"></i>Connected: ${escapeHtml(clientName)}`;
     }
     if (footerStatus) {
-      footerStatus.className = "cursor-pointer text-emerald-600 font-semibold font-mono text-[11px] bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200";
-      footerStatus.textContent = escapeHtml(clientName);
+      footerStatus.className = "cursor-pointer inline-flex items-center justify-center space-x-2 w-full py-2 px-3 rounded-xl font-semibold text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 transition-all hover:bg-emerald-100";
+      footerStatus.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span><span>Connected</span>`;
     }
 
     if (headerUserProfile) headerUserProfile.classList.remove('hidden');
@@ -90,13 +90,13 @@ function updateConnectionStatusUI(connected, user = null) {
     updateSettingsModalUI(true, user);
   } else {
     if (headerStatus) {
-      headerStatus.className = "hidden sm:inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200 cursor-pointer";
+      headerStatus.className = "hidden sm:inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200 cursor-pointer";
       headerStatus.onclick = openSettingsModal;
-      headerStatus.innerHTML = `<i class="fa-solid fa-plug mr-1 text-amber-600"></i>Not Connected`;
+      headerStatus.innerHTML = `<i class="fa-solid fa-plug mr-1 text-rose-600"></i>Disconnected`;
     }
     if (footerStatus) {
-      footerStatus.className = "cursor-pointer text-amber-600 font-semibold font-mono text-[11px] bg-amber-50 px-2 py-0.5 rounded border border-amber-200";
-      footerStatus.textContent = "Not connected";
+      footerStatus.className = "cursor-pointer inline-flex items-center justify-center space-x-2 w-full py-2 px-3 rounded-xl font-semibold text-xs bg-rose-50 text-rose-700 border border-rose-200 transition-all hover:bg-rose-100";
+      footerStatus.innerHTML = `<span class="w-2 h-2 rounded-full bg-rose-500"></span><span>Disconnected</span>`;
     }
 
     if (headerUserProfile) headerUserProfile.classList.add('hidden');

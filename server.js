@@ -683,20 +683,27 @@ app.use((req, res, next) => {
 // HTML PAGE ROUTES
 // -------------------------------------------------------------
 
-// Secret Admin Access URL Path (e.g. /kami)
-app.get(['/kami', '/kami/'], (req, res) => {
-  res.sendFile(path.join(__dirname, 'static', 'login.html'));
+// Admin Portal Route (ONLY accessible via /myadmin or /myadmin/)
+app.get(['/myadmin', '/myadmin/', '/myadmin/login'], (req, res) => {
+  const session = getAdminSession(req);
+  if (session && session.admin_token) {
+    return res.sendFile(path.join(__dirname, 'static', 'admin.html'));
+  }
+  return res.sendFile(path.join(__dirname, 'static', 'login.html'));
+});
+
+// Protect direct access to admin.html
+app.get('/admin.html', (req, res) => {
+  res.redirect('/myadmin');
+});
+
+// Explicitly block legacy /admin and /kami routes
+app.all(['/admin', '/admin/*', '/kami', '/kami/*'], (req, res) => {
+  res.status(404).send(`Cannot ${req.method} ${req.path}`);
 });
 
 app.get('/login', (req, res) => {
-  if (req.query.mode === 'admin' || req.query.mode === 'kami') {
-    return res.sendFile(path.join(__dirname, 'static', 'login.html'));
-  }
-  res.redirect('/');
-});
-
-app.get('/admin', (req, res) => {
-  res.sendFile(path.join(__dirname, 'static', 'admin.html'));
+  res.sendFile(path.join(__dirname, 'static', 'login.html'));
 });
 
 app.get(['/', '/dashboard'], (req, res) => {

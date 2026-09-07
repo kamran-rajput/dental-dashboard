@@ -18,7 +18,7 @@ async function checkAdminSession() {
   } catch (err) {
     console.error('Admin session check error:', err);
   }
-  window.location.replace('/login?mode=admin');
+  window.location.replace('/myadmin');
 }
 
 let adminClients = [];
@@ -32,7 +32,7 @@ async function fetchAdminData() {
     ]);
 
     if (clientsRes.status === 401 || staffRes.status === 401) {
-      window.location.replace('/login?mode=admin');
+      window.location.replace('/myadmin');
       return;
     }
 
@@ -343,7 +343,7 @@ async function handleAdminLogout() {
   try {
     await fetch('/api/admin/logout', { method: 'POST' });
   } catch (err) {}
-  window.location.replace('/login?mode=admin');
+  window.location.replace('/myadmin');
 }
 
 function openModal(id) {
