@@ -48,7 +48,10 @@ A lightweight Node.js Express CRM backend and dashboard for dental practice mana
 - **Branding Assets**:
   - Client Dashboard: `static/logo-client.png` (Derived from `Cubifai Logo Design-03.png`)
   - Admin CRM: `static/logo.png` (Derived from `Cubifai Logo Design-04.png`)
-- **Tenant Isolation**: Preserve the architectural boundary between the Control Plane (`gateway` schema) and Client Plane schemas (`<client>_booking` and `<client>_login`).
+- **Tenant Isolation**: Preserve the architectural boundary between the Control Plane (`gateway` schema) and Client Plane schemas (`<client>_booking` and `<client>_login`). Each tenant's data is isolated; Client A never interacts with or views Client B's records.
+- **Production Environment (Option A)**: Hostinger production app strictly requires 4 environment variables: `PORT=8000`, `GATEWAY_API_URL=https://gateway.cubifai.com`, `SESSION_SECRET`, and `NODE_ENV=production`. Database credentials are not exposed on Hostinger.
+- **Database Viewer Role**: Direct database audits and provisioning defaults use the dedicated PostgreSQL role `client_viewer` (`9876@ClientViewer`), restricted to `SELECT` permissions.
+- **Git Tracking & Packaging Hygiene**: Never commit deployment archives (`*.zip`, `Deploy.zip`) or environment dump files (`*.txt`, `env.txt`) to Git. All deployment artifacts must remain strictly ignored via `.gitignore`.
 
 ## Purpose of the `.agent/` Directory
 The `.agent/` directory organizes AI engineering context and repository metadata:
@@ -56,3 +59,4 @@ The `.agent/` directory organizes AI engineering context and repository metadata
 - `architecture/`: System design diagrams, data models, and blueprints ([`system-architecture.md`](file:///home/kami/Documents/Docker/dental-dashboard/.agent/architecture/system-architecture.md)).
 - `decisions/`: Architecture Decision Records ([`ADR-001`](file:///home/kami/Documents/Docker/dental-dashboard/.agent/decisions/ADR-001-database-driven-admin-auth.md), [`ADR-002`](file:///home/kami/Documents/Docker/dental-dashboard/.agent/decisions/ADR-002-exclusive-myadmin-routing-and-tenant-provisioning.md)).
 - `context/`: Additional project context, domain rules, and reference notes.
+

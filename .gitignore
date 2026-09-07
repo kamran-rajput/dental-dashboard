@@ -1,5 +1,10 @@
 node_modules/
 .env
-deploy.zip
+.env*.local
+*.zip
+Deploy.zip
+*.txt
+env.txt
 *.log
 .DS_Store
+

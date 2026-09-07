@@ -74,3 +74,27 @@ The Dental CRM Dashboard follows a multi-tier, multi-tenant architecture designe
 - **System Admin CRM**:
   - Favicon & Top Bar: `static/logo.png` (Derived from `Cubifai Logo Design-04.png`).
 
+## Deployment & Production Environment (Option A)
+- **Hostinger Node.js Web Layer**:
+  - Requires strictly 4 environment variables:
+    ```env
+    PORT=8000
+    GATEWAY_API_URL=https://gateway.cubifai.com
+    SESSION_SECRET=super-secret-hostinger-session-key-2026
+    NODE_ENV=production
+    ```
+  - Zero direct database exposure on Hostinger. All database operations, tenant authentication, bookings queries, and tenant provisioning route securely through `GATEWAY_API_URL`.
+
+- **Multi-Tenant Request Flow (Client A vs. Client B)**:
+  - Client A (`houston`) logs in &rarr; Gateway validates credentials against `houston_login.logins` &rarr; issues JWT bound to `houston` &rarr; Hostinger stores encrypted `user_session` cookie &rarr; subsequent queries route to `houston_booking.bookings`.
+  - Client B (`dallas`) logs in &rarr; Gateway validates against `dallas_login.logins` &rarr; issues JWT bound to `dallas` &rarr; queries route to `dallas_booking.bookings`.
+  - Strict PostgreSQL schema separation prevents cross-tenant data access.
+
+- **PostgreSQL Database Roles**:
+  - `gateway_user`: Backend engine role on Hetzner VPS with DDL permissions for schema provisioning and cascading drops.
+  - `client_viewer`: Dedicated read-only role (`9876@ClientViewer`) for queries and provisioning audits (`SELECT` permissions only).
+
+- **Repository Hygiene**:
+  - Deployment archives (`Deploy.zip`) and environment text dumps (`env.txt`) are excluded from Git tracking via `.gitignore`.
+
+

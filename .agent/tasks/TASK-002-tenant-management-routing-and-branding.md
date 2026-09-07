@@ -15,4 +15,9 @@
 - [x] Remove placeholder attributes from the client database connection form in `static/index.html`.
 - [x] Integrate `Cubifai Logo Design-03.png` (`/logo-client.png`) into client practice dashboard and client sign-in portal.
 - [x] Integrate `Cubifai Logo Design-04.png` (`/logo.png`) into system admin CRM and admin sign-in portal.
-- [x] Update deployment zip package (`Deploy.zip`) and push all changes to GitHub.
+- [x] Standardize production deployment configuration to Option A (`PORT`, `GATEWAY_API_URL`, `SESSION_SECRET`, `NODE_ENV`).
+- [x] Establish dedicated PostgreSQL read-only role `client_viewer` (`9876@ClientViewer`) on Hetzner VPS.
+- [x] Create comprehensive production `README.md` and document multi-tenant request interaction model.
+- [x] Enforce Git repository hygiene by excluding `*.zip`, `Deploy.zip`, `*.txt`, `env.txt` via `.gitignore`.
+- [x] Generate local `Deploy.zip` and `env.txt` for direct deployment on Hostinger.
+
